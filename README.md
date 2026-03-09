@@ -1,6 +1,6 @@
-# Les Premices - Site Web PPA-CI
+# CPPEUROPE.NET - Site Web PPA-CI
 
-Site web de l'association Les Premices (PPA-CI) avec gestion de presse, authentification et profils utilisateurs.
+Site web de l'association CPPEUROPE.NET) avec gestion de presse, authentification et profils utilisateurs.
 
 ## 🏗️ Architecture
 
