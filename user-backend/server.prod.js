@@ -14,7 +14,7 @@ sequelize
   .authenticate()
   .then(() => {
     console.log(`✅ Connexion USER-BACKEND à la BDD réussie (base: ${process.env.DB_NAME})`);
-    app.listen(port, () => {
+    app.listen(port, '0.0.0.0', () => {
       console.log(`✅ USER-BACKEND (prod) lancé en HTTP sur le port ${port}`);
     });
   })

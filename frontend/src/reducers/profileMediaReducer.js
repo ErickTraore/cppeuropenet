@@ -9,7 +9,7 @@ const initialState = {
 export const profileMediaReducer = (state = initialState, action) => {
   switch (action.type) {
     case 'FETCH_PROFILEMEDIA_REQUEST':
-      return { ...state, loading: true };
+      return { ...state, loading: true, error: null };
 
     case 'FETCH_PROFILEMEDIA_SUCCESS':
       return { ...state, loading: false, slots: Array.isArray(action.payload) ? action.payload : [] };

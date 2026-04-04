@@ -1,4 +1,4 @@
-## File: cppeurope/docker-compose.yml 
+## File: hostinger-cppeurope/docker-compose.yml 
 services:
   user-backend:
     image: node:20
@@ -9,13 +9,15 @@ services:
       - ./user-backend/.env.production
     environment:
       NODE_ENV: production
-      ALLOWED_ORIGINS: https://cppeurope.net,https://www.cppeurope.net,http://localhost:8082
-    command: bash -c "node server.prod.js"
+      ALLOWED_ORIGINS: https://cppeurope.net,https://www.cppeurope.net,http://localhost:8082,http://localhost:3000
+    command: ["sh", "./wait-for-db.sh", "node", "server.prod.js"]
     depends_on:
       - mariadb
     restart: always
+    networks:
+      - app-network
     ports:
-      - "7003:7003"
+      - "7001:7001"
 
   presse-generale-backend:
     image: node:20
@@ -27,25 +29,29 @@ services:
     environment:
       NODE_ENV: production
       ALLOWED_ORIGINS: https://cppeurope.net,https://www.cppeurope.net,http://localhost:8082
-    command: bash -c "npm install && node server.prod.js"
+    command: ["sh", "./wait-for-db.sh", "bash", "-c", "npm install && node server.prod.js"]
     depends_on:
       - mariadb
     restart: always
     ports:
       - "7006:7006"
+    networks:
+      - app-network
 
   mariadb:
     image: mariadb:11
     restart: always
     environment:
-      MARIADB_DATABASE: user_prod_cppeurope_v1
-      MARIADB_USER:   c
+      MARIADB_DATABASE: user_dev_cppeurope_v1
+      MARIADB_USER: c
       MARIADB_PASSWORD: CppEurope@2025!
       MARIADB_ROOT_PASSWORD: RootPass@2025!
     volumes:
-      - cppeurope-db-data:/var/lib/mysql
+      - hostinger-cppeurope-db-data:/var/lib/mysql
     ports:
-      - "3308:3306"
+      - "3314:3306"
+    networks:
+      - app-network
 
   nginx:
     image: nginx:stable
@@ -53,12 +59,25 @@ services:
       - user-backend
       - presse-generale-backend
     ports:
-      - "8082:80"
-
+      - "8085:80"   # <-- PORT CORRIGÉ
     volumes:
       - ./nginx:/etc/nginx/
       - /etc/letsencrypt:/etc/letsencrypt:ro
-      - ./frontend/build:/usr/share/nginx/html
+
+  frontend:
+    image: node:20
+    working_dir: /usr/src/app
+    volumes:
+      - ./frontend:/usr/src/app
+    environment:
+      NODE_ENV: production
+      REACT_APP_USER_API: http://user-backend:7001/api/users
+    command: bash -c "npm install && npm run build && npx --yes serve -s build -l 3000"
+    ports:
+      - "8082:3000"
+    restart: always
+    networks:
+      - app-network
 
   adminer:
     image: adminer
@@ -70,6 +89,9 @@ services:
     environment:
       ADMINER_DEFAULT_SERVER: mariadb
 
-   
 volumes:
-  cppeurope-db-data:
+  hostinger-cppeurope-db-data:
+
+networks:
+  app-network:
+    driver: bridge

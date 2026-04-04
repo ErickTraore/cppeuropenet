@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
+import { getPresseLocaleApiRoot } from '../../../utils/presseLocaleApi';
 
-const USER_API = process.env.REACT_APP_PRESSE_LOCALE_API || process.env.REACT_APP_USER_API;
 const SITE_KEY = process.env.REACT_APP_PRESSE_LOCALE_SITE_KEY || 'cppEurope';
 
 const FormPresseLocale = () => {
@@ -36,7 +36,7 @@ const FormPresseLocale = () => {
     setSuccessMessage('');
 
     try {
-      const response = await fetch(`${USER_API}/messages/new`, {
+      const response = await fetch(`${getPresseLocaleApiRoot()}/messages/new/`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,

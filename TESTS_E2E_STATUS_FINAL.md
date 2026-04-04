@@ -17,15 +17,15 @@
 
 ### 2. Fichiers de test réels
 ```bash
-/var/www/cppeurope/frontend/cypress/fixtures/
+/var/www/hostinger-cppeurope/frontend/cypress/fixtures/
 ├── test-image.png  (327 bytes - vraie image PNG bleue 150x150)
 └── test-video.mp4  (19 KB - vraie vidéo H.264 + audio, 1 seconde)
 ```
 
 ### 3. Base de données vérifiée
 ```sql
-SELECT id, email, isAdmin FROM Users WHERE email='cppeurope@gmail.com';
-# Résultat: id=3, email=cppeurope@gmail.com, isAdmin=1 ✅
+SELECT id, email, isAdmin FROM Users WHERE email='hostinger-cppeurope@gmail.com';
+# Résultat: id=3, email=hostinger-cppeurope@gmail.com, isAdmin=1 ✅
 ```
 
 ### 4. Structure des tests
@@ -57,7 +57,6 @@ SELECT id, email, isAdmin FROM Users WHERE email='cppeurope@gmail.com';
 ## 🔍 Diagnostic technique
 
 ### Composants concernés
-
 ```javascript
 // PageContent.jsx
 {activePage === 'admin-presse-générale' && <Presse />}  
@@ -82,7 +81,7 @@ SELECT id, email, isAdmin FROM Users WHERE email='cppeurope@gmail.com';
 - Mais l'état d'authentification n'est pas encore propagé
 
 **Hypothèse 3**: Le mot de passe test est incorrect
-- `cppeurope2025` dans les tests ne correspond pas au hash bcrypt en BDD
+- 'hostinger-cppeurope2025' dans les tests ne correspond pas au hash bcrypt en BDD
 - Le login échoue silencieusement
 - Le token stocké est invalide
 
@@ -93,8 +92,8 @@ SELECT id, email, isAdmin FROM Users WHERE email='cppeurope@gmail.com';
 ### Solution A: Tester manuellement le login sur production
 
 ```bash
-# 1. Se connecter à https://cppeurope.net/#auth
-# 2. Utiliser: cppeurope@gmail.com / cppeurope2025
+# 1. Se connecter à https://hostinger-cppeurope.net/#auth
+# 2. Utiliser: hostinger-cppeurope@gmail.com / hostinger-cppeurope2025
 # 3. Vérifier si la redirection vers #admin-presse-générale montre le formulaire
 # 4. Inspecter localStorage pour voir le token JWT
 ```
@@ -113,7 +112,7 @@ SELECT id, email, isAdmin FROM Users WHERE email='cppeurope@gmail.com';
 -- Dans la base de données
 INSERT INTO Users (email, password, isAdmin, username, createdAt, updatedAt) 
 VALUES (
-  'test-cypress@cppeurope.net',
+  'test-cypress@hostinger-cppeurope.net',
   '$2a$05$...',  -- hash bcrypt de "TestCypress2026!"
   1,
   'Cypress Test',
@@ -125,7 +124,7 @@ VALUES (
 Puis mettre à jour `cypress/support/commands.js`:
 ```javascript
 Cypress.Commands.add('login', (
-  email = 'test-cypress@cppeurope.net', 
+  email = 'test-cypress@hostinger-cppeurope.net', 
   password = 'TestCypress2026!'
 ) => {
   // ...
@@ -178,13 +177,13 @@ beforeEach(() => {
 ## 🎯 Prochaines étapes recommandées
 
 ### Priorité 1: Valider le login manuellement
-1. Ouvrir https://cppeurope.net/#auth dans un navigateur
-2. Se connecter avec `cppeurope@gmail.com` / `cppeurope2025`
+1. Ouvrir https://hostinger-cppeurope.net/#auth dans un navigateur
+2. Se connecter avec `hostinger-cppeurope@gmail.com` / `hostinger-cppeurope2025`
 3. Naviguer manuellement vers `#admin-presse-générale`
 4. Vérifier que le `<select class="presse-select">` apparaît
 
 ### Priorité 2: Si login échoue
-- Récupérer le vrai mot de passe de cppeurope@gmail.com
+- Récupérer le vrai mot de passe de hostinger-cppeurope@gmail.com
 - OU créer un nouvel utilisateur admin dédié aux tests
 
 ### Priorité 3: Si login réussit mais Cypress échoue
@@ -197,7 +196,6 @@ beforeEach(() => {
 ## 📝 Commandes utiles
 
 ```bash
-# Exécuter un test spécifique
 npm run cypress:run -- --spec 'cypress/e2e/presse-article.cy.js'
 
 # Ouvrir l'interface Cypress (sur machine locale avec GUI)

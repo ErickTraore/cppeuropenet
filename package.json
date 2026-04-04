@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "mariadb": "^3.5.2",
+    "mysql2": "^3.20.0"
+  },
+  "devDependencies": {
+    "cypress": "^15.13.0"
+  }
+}

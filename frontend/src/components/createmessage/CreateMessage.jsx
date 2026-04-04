@@ -3,11 +3,12 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { fetchMessages } from '../../actions/messageActions';
+import { resolveApiUrl } from '../../utils/apiUrls';
 import Spinner from '../common/Spinner';
 
-const USER_API = process.env.REACT_APP_USER_API;
-const PRESSE_GENERALE_API = process.env.REACT_APP_PRESSE_GENERALE_API || USER_API;
-const MEDIA_API = process.env.REACT_APP_MEDIA_API;
+const USER_API = resolveApiUrl(process.env.REACT_APP_USER_API, 'http://localhost:7001/api/users', 'USER_API');
+const PRESSE_GENERALE_API = resolveApiUrl(process.env.REACT_APP_PRESSE_GENERALE_API, USER_API, 'PRESSE_GENERALE_API');
+const MEDIA_API = resolveApiUrl(process.env.REACT_APP_MEDIA_API, 'http://localhost:7017/api/user-media-profile', 'MEDIA_API');
 
 const CreateMessage = () => {
   const [newMessage, setNewMessage] = useState({

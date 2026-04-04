@@ -27,8 +27,86 @@ import {
 
 } from './types';
 
-const USER_API = process.env.REACT_APP_USER_API;
-const MEDIA_API = process.env.REACT_APP_MEDIA_API;
+import { resolveApiUrl } from '../utils/apiUrls';
+import { getProfileMediaApiBase } from '../utils/profileMediaApi';
+
+const USER_API = resolveApiUrl(process.env.REACT_APP_USER_API, 'http://localhost:7001/api/users', 'USER_API');
+
+/** Chemins par défaut alignés sur user-backend (usersCtrl.register). */
+const DEFAULT_PROFILE_SLOT_PATHS = [
+  '/mediaprofile/default/slot-0.png',
+  '/mediaprofile/default/slot-1.png',
+  '/mediaprofile/default/slot-2.png',
+  '/mediaprofile/default/slot-3.png',
+];
+
+function normalizeProfileMediaList(data) {
+  const slots = Array.isArray(data)
+    ? data
+    : (data?.slots ??
+      data?.media ??
+      data?.data ??
+      data?.items ??
+      data?.results ??
+      data?.mediaProfiles ??
+      data?.list ??
+      []);
+  return Array.isArray(slots) ? slots : [];
+}
+
+/** Indices 0–3 absents de la réponse API (profil sans provisionnement média, ex. ancien script SQL). */
+function missingProfileSlotIndices(slots) {
+  return [0, 1, 2, 3].filter((i) => !slots.some((s) => Number(s.slot) === i));
+}
+
+async function postDefaultProfileSlot(profileId, slot) {
+  const base = getProfileMediaApiBase();
+  const res = await fetch(`${base}/mediaProfile/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      profileId,
+      filename: '',
+      path: DEFAULT_PROFILE_SLOT_PATHS[slot],
+      type: '',
+      slot,
+    }),
+  });
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => ({}));
+    throw new Error(
+      errBody.error || errBody.details || `Provisionnement slot ${slot} : HTTP ${res.status}`
+    );
+  }
+}
+
+async function ensureProfileMediaSlots(profileId, slots) {
+  const missing = missingProfileSlotIndices(slots);
+  if (missing.length === 0) return slots;
+  console.warn(
+    '[fetchProfileMedia] Emplacements manquants, provisionnement:',
+    missing,
+    '(profileId=',
+    profileId,
+    ')'
+  );
+  for (const slot of missing) {
+    await postDefaultProfileSlot(profileId, slot);
+  }
+  const base = getProfileMediaApiBase();
+  const url = `${base}/mediaProfile/${profileId}`;
+  const token = localStorage.getItem('accessToken');
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Erreur relecture médias après provisionnement');
+  return normalizeProfileMediaList(data);
+}
 
 
 
@@ -80,7 +158,7 @@ export const createFullProfile = ({ profileInfoCreate = {}, profileMediaCreate =
         for (const media of profileMediaCreate) {
           dispatch({ type: CREATE_PROFILEMEDIA_REQUEST });
           try {
-            const mediaResponse = await fetch(`${MEDIA_API}/mediaProfile/`, {
+            const mediaResponse = await fetch(`${getProfileMediaApiBase()}/mediaProfile/`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ ...media, profileId })
@@ -143,7 +221,7 @@ export const updateProfileMedia = (mediaId, payload) => async (dispatch) => {
     return;
   }
 
-  const url = `${MEDIA_API}/mediaProfile/${mediaId}`;
+  const url = `${getProfileMediaApiBase()}/mediaProfile/${mediaId}`;
   console.log('🚀 Requête PUT vers :', url);
 
   try {
@@ -183,35 +261,36 @@ export const fetchProfileMedia = (profileId) => async (dispatch) => {
     return;
   }
 
-  const url = `${MEDIA_API}/mediaProfile/${profileId}`;
+  const base = getProfileMediaApiBase();
+  const url = `${base}/mediaProfile/${profileId}`;
   console.log('[fetchProfileMedia] GET', url, 'profileId=', profileId);
 
   try {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
     });
 
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Erreur récupération médias');
 
-    // Debug : réponse complète de l'API (voir onglet Console au chargement du profil)
-    console.log('[fetchProfileMedia] Réponse brute:', JSON.stringify(data).slice(0, 500), '| type:', Array.isArray(data) ? 'array' : typeof data, Array.isArray(data) ? `length=${data.length}` : (data ? `keys=[${Object.keys(data).join(', ')}]` : ''));
+    console.log(
+      '[fetchProfileMedia] Réponse brute:',
+      JSON.stringify(data).slice(0, 500),
+      '| type:',
+      Array.isArray(data) ? 'array' : typeof data,
+      Array.isArray(data) ? `length=${data.length}` : data ? `keys=[${Object.keys(data).join(', ')}]` : ''
+    );
 
-    // Normaliser la réponse : tableau ou objet avec liste de médias
-    const slots = Array.isArray(data)
-      ? data
-      : (data?.slots ?? data?.media ?? data?.data ?? data?.items ?? data?.results ?? data?.mediaProfiles ?? data?.list ?? []);
+    let slots = normalizeProfileMediaList(data);
 
-    if (!Array.isArray(slots)) {
-      console.warn('[fetchProfileMedia] Liste de slots non-tableau après normalisation:', slots);
-      dispatch({ type: FETCH_PROFILEMEDIA_SUCCESS, payload: [] });
-      return;
-    }
-    console.log('[fetchProfileMedia] Slots normalisés:', slots.length, slots);
+    slots = await ensureProfileMediaSlots(profileId, slots);
+
+    slots.sort((a, b) => Number(a.slot) - Number(b.slot));
+    console.log('[fetchProfileMedia] Slots finaux:', slots.length, slots);
 
     dispatch({ type: FETCH_PROFILEMEDIA_SUCCESS, payload: slots });
   } catch (error) {

@@ -4,7 +4,7 @@
 
 - CI: `.github/workflows/ci.yml`
   - Build frontend React sur push/PR
-  - Exécute un smoke test Cypress (`cppeuropeNet.cy.js`)
+  - Exécute un smoke test Cypress (`hostingerCppeuropeNet.cy.js`)
 
 - CD: `.github/workflows/cd.yml`
   - Déclenchement automatique sur push `main`
@@ -18,7 +18,7 @@ Configurer ces secrets dans le repo GitHub (`Settings > Secrets and variables > 
 
 - `DEPLOY_HOST` : IP ou domaine du serveur
 - `DEPLOY_USER` : utilisateur SSH (ex: `root`)
-- `DEPLOY_PATH` : chemin du projet sur serveur (ex: `/var/www/cppeurope`)
+- `DEPLOY_PATH` : chemin du projet sur serveur (ex: `/var/www/hostinger-cppeurope`)
 - `DEPLOY_SSH_KEY` : clé privée SSH (format OpenSSH)
 
 ## Utilisation

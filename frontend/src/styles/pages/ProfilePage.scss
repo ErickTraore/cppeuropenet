@@ -73,6 +73,8 @@
     margin: 0 auto;
     background-color: rgb(125, 154, 236);
     border-radius: 8px;
+    /* Réduit le jitter de scroll quand le contenu change de hauteur (Chrome) */
+    overflow-anchor: none;
     &__grid {
         display: grid;
         grid-template-columns: 1fr; // 🔹 une seule colonne sur mobile
@@ -86,13 +88,22 @@
         border: 1px solid #ddd;
         border-radius: 8px;
         padding: 12px;
+        &__image-wrap {
+            width: 100%;
+            max-width: 280px;
+            aspect-ratio: 1 / 1;
+            border-radius: 6px;
+            overflow: hidden;
+            background: #e8edf5;
+            margin-bottom: 8px;
+            flex-shrink: 0;
+        }
         .profile-image {
             width: 100%;
-            max-width: 280px; // 🔹 limite pour petit écran
-            height: auto;
-            border-radius: 6px;
+            height: 100%;
+            display: block;
             object-fit: cover;
-            margin-bottom: 8px;
+            object-position: center;
         }
         &__upload {
             width: 100%;

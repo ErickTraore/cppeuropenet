@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { triggerFormatReset } from '../../../utils/formatController';
+import { getPresseLocaleApiRoot, getPresseLocaleMediaApiRoot } from '../../../utils/presseLocaleApi';
 
-const USER_API = process.env.REACT_APP_PRESSE_LOCALE_API || process.env.REACT_APP_USER_API;
-const MEDIA_API = process.env.REACT_APP_PRESSE_LOCALE_MEDIA_API || process.env.REACT_APP_MEDIA_API;
 const SITE_KEY = process.env.REACT_APP_PRESSE_LOCALE_SITE_KEY || 'cppEurope';
 
 const FormPresseLocaleVideo = () => {
@@ -34,13 +33,19 @@ const FormPresseLocaleVideo = () => {
     formData.append('video', file);
     formData.append('messageId', messageId);
 
-    const response = await fetch(`${MEDIA_API}/uploadVideo`, {
+    const response = await fetch(`${getPresseLocaleMediaApiRoot()}/uploadVideo/`, {
       method: 'POST',
       body: formData,
     });
 
     if (!response.ok) {
       throw new Error(`❌ Erreur upload vidéo: ${response.status}`);
+    }
+    const ct = response.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) {
+      throw new Error(
+        '❌ Upload vidéo : réponse non JSON (vérifiez mediaLocale :7008 et le proxy /api/media-locale).'
+      );
     }
   };
 
@@ -62,7 +67,7 @@ const FormPresseLocaleVideo = () => {
     setSuccessMessage('');
 
     try {
-      const messageResponse = await fetch(`${USER_API}/messages/new/`, {
+      const messageResponse = await fetch(`${getPresseLocaleApiRoot()}/messages/new/`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,

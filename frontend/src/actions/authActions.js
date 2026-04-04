@@ -1,6 +1,8 @@
 // src/actions/authActions.js
 
-const USER_API = process.env.REACT_APP_USER_API;
+import { resolveApiUrl } from '../utils/apiUrls';
+
+const USER_API = resolveApiUrl(process.env.REACT_APP_USER_API, 'http://localhost:7001/api/users', 'USER_API');
 
 
 export const registerRequest = () => ({

@@ -2,11 +2,19 @@
 /**
  * Supprime user2026 et admin2026, puis les réinscrit via l'API (création des 4 slots sur Contabo).
  * isAdmin: 0 pour user2026, 1 pour admin2026.
- * Usage: cd user-backend && NODE_ENV=production DB_HOST=mariadb node scripts/recreate-test-users-2026.js
- * (Depuis l'hôte avec backend en Docker: DB_HOST=127.0.0.1 DB_PORT=3308 API_BASE=http://localhost:7003 node scripts/recreate-test-users-2026.js)
+ * Usage:
+ *   Docker / prod : NODE_ENV=production … node scripts/recreate-test-users-2026.js
+ *   Local dev     : NODE_ENV=development API_BASE=http://localhost:7001 node scripts/recreate-test-users-2026.js
  */
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '.env.production') });
+const envFile =
+  process.env.DOTENV_CONFIG_PATH ||
+  path.join(
+    __dirname,
+    '..',
+    process.env.NODE_ENV === 'development' ? '.env.development' : '.env.production'
+  );
+require('dotenv').config({ path: envFile });
 process.env.NODE_ENV = process.env.NODE_ENV || 'production';
 
 const { User, Profile, sequelize } = require('../models');
@@ -18,7 +26,7 @@ const USERS = [
   { email: 'admin2026@cppeurope.net', password: 'admin2026!', isAdmin: true },  // admin=1
 ];
 
-const API_BASE = process.env.API_BASE || 'http://localhost:7003';
+const API_BASE = (process.env.API_BASE || 'http://localhost:7001').replace(/\/$/, '');
 
 async function deleteUsers() {
   for (const email of EMAILS) {

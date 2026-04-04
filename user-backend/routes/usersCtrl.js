@@ -23,7 +23,14 @@ module.exports = {
         const email = req.body.email;
         const password = req.body.password;
         const bio = req.body.bio;
-        const isAdmin = typeof req.body.isAdmin === 'boolean' ? req.body.isAdmin : false;
+        let isAdmin = false;
+        if (typeof req.body.isAdmin === 'boolean') {
+            isAdmin = req.body.isAdmin;
+        } else if (req.body.role === 'admin') {
+            isAdmin = true;
+        } else if (req.body.role === 'user') {
+            isAdmin = false;
+        }
 
         if (email === '' || password === '') {
             console.warn("⚠️ [BACKEND] Paramètres manquants :", { email, password });
@@ -37,11 +44,6 @@ module.exports = {
             console.warn("⚠️ [BACKEND] Mot de passe invalide (regex non respectée)");
             return res.status(400).json({ error: 'Mot de passe invalide' });
         }
-        if (typeof isAdmin !== 'boolean') {
-            console.warn("⚠️ [BACKEND] isAdmin non booléen :", isAdmin);
-            return res.status(400).json({ error: 'Le champ isAdmin doit être un booléen' });
-        }
-
         asyncLib.waterfall([
             function (done) {
                 models.User.findOne({ attributes: ['email'], where: { email } })
@@ -484,6 +486,29 @@ module.exports = {
                 message: 'Erreur serveur.'
             });
         }
-    }
+    },
 
+    /** DEV uniquement : supprime un compte seed Cypress (006/007). Jamais exposé si NODE_ENV=production. */
+    deleteE2eDevUser: async function (req, res) {
+        const allowed = new Set([
+            'admin2026@cppeurope.net',
+            'user2026@cppeurope.net',
+        ]);
+        const email = decodeURIComponent(String(req.params.email || ''));
+        if (!allowed.has(email)) {
+            return res.status(400).json({ error: 'Email non autorisé pour reset E2E' });
+        }
+        try {
+            const user = await models.User.findOne({ where: { email } });
+            if (!user) {
+                return res.status(204).end();
+            }
+            await models.Profile.destroy({ where: { userId: user.id } });
+            await user.destroy();
+            return res.status(200).json({ ok: true, email });
+        } catch (err) {
+            console.error('deleteE2eDevUser:', err);
+            return res.status(500).json({ error: 'Erreur suppression E2E' });
+        }
+    },
 };

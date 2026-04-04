@@ -1,12 +1,12 @@
 // File: cppeurope/frontend/src/components/messages/presse/FormArticleVideo.jsx
 
-
 import React, { useState, useRef } from 'react';
 import { triggerFormatReset } from '../../../utils/formatController';
+import { resolveApiUrl } from '../../../utils/apiUrls';
+import { getPresseGeneraleMediaApiBase, parsePresseMessageIdFromCreateResponse } from '../../../utils/presseGeneraleMedia';
 
-const USER_API = process.env.REACT_APP_USER_API;
-const PRESSE_GENERALE_API = process.env.REACT_APP_PRESSE_GENERALE_API || USER_API;
-const MEDIA_API = process.env.REACT_APP_MEDIA_API;
+const USER_API = resolveApiUrl(process.env.REACT_APP_USER_API, 'http://localhost:7001/api/users', 'USER_API');
+const PRESSE_GENERALE_API = resolveApiUrl(process.env.REACT_APP_PRESSE_GENERALE_API, USER_API, 'PRESSE_GENERALE_API');
 
 const FormArticleVideo = () => {
   const [newMessage, setNewMessage] = useState({
@@ -35,16 +35,25 @@ const FormArticleVideo = () => {
   const uploadVideo = async (file, messageId) => {
     const formData = new FormData();
     formData.append('video', file);
-    formData.append('messageId', messageId);
+    formData.append('messageId', String(messageId));
+
+    const base = getPresseGeneraleMediaApiBase().replace(/\/$/, '');
+    const uploadUrl = `${base}/uploadVideo/`;
 
     try {
-      const response = await fetch(`${MEDIA_API}/uploadVideo`, {
+      const response = await fetch(uploadUrl, {
         method: 'POST',
         body: formData,
       });
 
       if (!response.ok) {
         throw new Error(`❌ Erreur upload vidéo: ${response.status}`);
+      }
+      const ct = response.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        throw new Error(
+          '❌ Upload vidéo : réponse non JSON (vérifiez mediaGle :7004 et le proxy /api/media).'
+        );
       }
     } catch (error) {
       console.error('❌ Erreur lors de l\'upload de la vidéo:', error);
@@ -88,9 +97,12 @@ const FormArticleVideo = () => {
         throw new Error(`❌ Erreur HTTP ${messageResponse.status}`);
       }
 
-      const { id: newMessageId } = await messageResponse.json();
+      const created = await messageResponse.json();
+      const newMessageId = parsePresseMessageIdFromCreateResponse(created);
+      if (newMessageId == null) {
+        throw new Error('Réponse API presse invalide : id du message manquant après création.');
+      }
 
-      // Upload vidéo vers Contabo
       await uploadVideo(newMessage.video, newMessageId);
 
       // Garder le spinner au minimum 4 secondes pour l'UX

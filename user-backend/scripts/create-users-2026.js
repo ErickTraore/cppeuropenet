@@ -1,50 +1,48 @@
 'use strict';
 /**
- * Crée admin2026@cppeurope.net (isAdmin=1) et user2026@cppeurope.net (isAdmin=0).
- * Usage: cd user-backend && NODE_ENV=production DB_HOST=127.0.0.1 DB_PORT=3308 node scripts/create-users-2026.js
+ * Crée admin2026 et user2026 uniquement via POST /api/users/register/ (même chemin que l’UI et Cypress).
+ * Effet : User + Profile + 4 slots médias profil si le backend user-media-profile répond (voir usersCtrl.register).
+ *
+ * Idempotent : 201 = créé, 409 = déjà existant (les deux sont considérés comme succès).
+ *
+ * Usage :
+ *   cd user-backend && API_BASE=http://localhost:7001 node scripts/create-users-2026.js
+ *
+ * Le serveur user-backend doit être démarré ; aucune création directe en base depuis ce script.
  */
-const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '..', '.env.production') });
-process.env.NODE_ENV = process.env.NODE_ENV || 'production';
-
-const bcrypt = require('bcryptjs');
-const { User, Profile, sequelize } = require('../models');
+const API_BASE = (process.env.API_BASE || 'http://localhost:7001').replace(/\/$/, '');
 
 const USERS = [
   { email: 'admin2026@cppeurope.net', password: 'admin2026!', isAdmin: true },
   { email: 'user2026@cppeurope.net', password: 'user2026!', isAdmin: false },
 ];
 
-const ROUNDS = 5;
-
 async function run() {
-  try {
-    await sequelize.authenticate();
-    for (const { email, password, isAdmin } of USERS) {
-      const existing = await User.findOne({ where: { email } });
-      if (existing) {
-        console.log('Déjà existant:', email);
-        continue;
-      }
-      const hash = await bcrypt.hash(password, ROUNDS);
-      const user = await User.create({ email, password: hash, isAdmin });
-      await Profile.create({
-        userId: user.id,
-        email: user.email,
-        lastName: null,
-        firstName: null,
-        phone1: null,
-        phone2: null,
-        phone3: null,
-        address: null,
-      });
-      console.log('Créé:', email, 'isAdmin=', isAdmin);
+  const fetch = (await import('node-fetch')).default;
+  let exitCode = 0;
+
+  for (const { email, password, isAdmin } of USERS) {
+    const res = await fetch(`${API_BASE}/api/users/register/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, isAdmin }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (res.status === 201 || res.status === 200) {
+      console.log('OK créé:', email, data.userId != null ? `(userId=${data.userId})` : '');
+    } else if (res.status === 409) {
+      console.log('Déjà existant (409):', email);
+    } else {
+      console.error('Échec:', email, 'HTTP', res.status, data);
+      exitCode = 1;
     }
-    process.exit(0);
-  } catch (err) {
-    console.error(err);
-    process.exit(1);
   }
+
+  process.exit(exitCode);
 }
 
-run();
+run().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

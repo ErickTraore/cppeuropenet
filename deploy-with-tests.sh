@@ -10,7 +10,7 @@ echo "========================================"
 echo ""
 echo "📋 Étape 1/3 : Tests unitaires React"
 echo "------------------------------------"
-cd /var/www/cppeurope/frontend
+cd /var/www/hostinger-cppeurope/frontend
 CI=true npm test -- --watchAll=false --passWithNoTests || {
     echo "❌ Tests unitaires échoués"
     exit 1

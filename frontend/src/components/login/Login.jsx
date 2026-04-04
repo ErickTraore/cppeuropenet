@@ -3,10 +3,13 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { loginUser } from '../../actions/authActions';
+import { resolveApiUrl } from '../../utils/apiUrls';
 import Spinner from '../common/Spinner';
 import '../auth/AuthForm.scss';
 
-const USER_API = process.env.REACT_APP_USER_API;
+console.log('[DEBUG] process.env.REACT_APP_USER_API =', process.env.REACT_APP_USER_API);
+const USER_API = resolveApiUrl(process.env.REACT_APP_USER_API, 'http://localhost:7001/api/users', 'USER_API');
+console.log('[DEBUG] USER_API (après resolveApiUrl) =', USER_API);
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -27,16 +30,26 @@ const Login = () => {
     }
 
     try {
-      const response = await fetch(`${USER_API}/login`, {
+      const loginUrl = `${USER_API}/login`;
+      console.log('[DEBUG] URL finale utilisée pour login =', loginUrl);
+      const response = await fetch(loginUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
-      console.log('Réponse du login :', data);
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonErr) {
+        console.error('[DEBUG] Erreur lors du parsing JSON de la réponse login:', jsonErr);
+        data = null;
+      }
+      console.log('[DEBUG] Status HTTP:', response.status);
+      console.log('[DEBUG] Headers:', JSON.stringify([...response.headers]));
+      console.log('[DEBUG] Réponse du login :', data);
 
-      if (response.ok) {
+      if (response.ok && data && data.accessToken) {
         localStorage.setItem('accessToken', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
         sessionStorage.setItem('sessionJustLoggedIn', '1');
@@ -44,14 +57,20 @@ const Login = () => {
         dispatch(loginUser(data.accessToken));
 
         if (data.redirectUrl) {
-          window.location.href = data.redirectUrl;
+          // Même origine `/#page` : utiliser `hash` pour rester en SPA (évite rechargement complet + flakiness Cypress).
+          const hashRoute = /^\/#(.+)$/.exec(data.redirectUrl);
+          if (hashRoute) {
+            window.location.hash = hashRoute[1];
+          } else {
+            window.location.href = data.redirectUrl;
+          }
         }
-        console.log('Connexion réussie, redirection vers :', data.redirectUrl);
+        console.log('[DEBUG] Connexion réussie, redirection vers :', data.redirectUrl);
       } else {
-        console.error('Échec de la connexion :', data.message);
+        console.error('[DEBUG] Échec de la connexion :', data ? data.message : 'Pas de data');
       }
     } catch (error) {
-      console.error('Erreur réseau ou serveur :', error.message);
+      console.error('[DEBUG] Erreur réseau ou serveur :', error.message, error);
     }
   };
 

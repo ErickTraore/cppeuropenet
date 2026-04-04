@@ -1,9 +1,10 @@
 // File: frontend/src/actions/messageActions.js
 
 import { FETCH_MESSAGES } from './types';
+import { resolveApiUrl } from '../utils/apiUrls';
 
-const USER_API = process.env.REACT_APP_USER_API;
-const PRESSE_GENERALE_API = process.env.REACT_APP_PRESSE_GENERALE_API || USER_API;
+const USER_API = resolveApiUrl(process.env.REACT_APP_USER_API, 'http://localhost:7001/api/users', 'USER_API');
+const PRESSE_GENERALE_API = resolveApiUrl(process.env.REACT_APP_PRESSE_GENERALE_API, USER_API, 'PRESSE_GENERALE_API');
 
 export const fetchMessages = (categ = null) => {
   return async dispatch => {

@@ -15,7 +15,7 @@ Ce projet inclut 3 niveaux de tests :
 Les dépendances sont déjà installées. Si besoin :
 
 ```bash
-cd /var/www/cppeurope/frontend
+cd /var/www/hostinger-cppeurope/frontend
 npm install
 ```
 
@@ -25,7 +25,7 @@ npm install
 
 ### Lancer tous les tests unitaires
 ```bash
-cd /var/www/cppeurope/frontend
+cd /var/www/hostinger-cppeurope/frontend
 npm test
 ```
 

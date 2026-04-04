@@ -4,6 +4,10 @@ import React from 'react';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getProfileUser } from '../../actions/userActions';
+import { resolveApiUrl } from '../../utils/apiUrls';
+
+const MEDIA_API = resolveApiUrl(process.env.REACT_APP_MEDIA_API, 'http://localhost:7017/api/user-media-profile', 'MEDIA_API');
+
 const AlbumProfile = () => {
 
   const { slots } = useSelector(state => state.profileMedia);
@@ -22,7 +26,7 @@ const AlbumProfile = () => {
               typeof media.path === 'string' &&
               (media.path.startsWith('/imagesprofile/') || media.path.startsWith('/mediaprofile/'))
                 ? media.path
-                : `${process.env.REACT_APP_MEDIA_API}${media.path || ''}`
+                : `${MEDIA_API}${media.path || ''}`
             }
             alt={`slot-${media.slot}`}
             style={{

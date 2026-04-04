@@ -1,5 +1,7 @@
 // File: frontend/src/actions/userActions.js
-const USER_API = process.env.REACT_APP_USER_API;
+import { resolveApiUrl } from '../utils/apiUrls';
+
+const USER_API = resolveApiUrl(process.env.REACT_APP_USER_API, 'http://localhost:7001/api/users', 'USER_API');
 
 // 🔍 Lire tous les utilisateurs
 export const getUsers = () => async (dispatch) => {

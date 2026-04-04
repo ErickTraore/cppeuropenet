@@ -3,10 +3,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPresseLocale } from '../../actions/presseLocaleActions';
+import { getPresseLocaleApiRoot, getPresseLocaleMediaApiRoot } from '../../utils/presseLocaleApi';
 import './PresseLocaleManager.css';
-
-const PRESSE_LOCALE_API = process.env.REACT_APP_PRESSE_LOCALE_API || process.env.REACT_APP_USER_API;
-const MEDIA_API = process.env.REACT_APP_PRESSE_LOCALE_MEDIA_API || process.env.REACT_APP_MEDIA_API;
 
 const getAllowedTypesFromTitle = (title = '') => {
   const normalized = String(title).toUpperCase();
@@ -37,7 +35,7 @@ const PresseGeneraleManager = () => {
       const media = {};
       for (const msg of messagesList) {
         try {
-          const res = await fetch(`${MEDIA_API}/getMedia/${msg.id}`, {
+          const res = await fetch(`${getPresseLocaleMediaApiRoot()}/getMedia/${msg.id}`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` }
           });
           if (res.ok) {
@@ -91,7 +89,7 @@ const PresseGeneraleManager = () => {
         }
       }
 
-      const res = await fetch(`${PRESSE_LOCALE_API}/messages/${editingId}`, {
+      const res = await fetch(`${getPresseLocaleApiRoot()}/messages/${editingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(formData)
@@ -101,7 +99,7 @@ const PresseGeneraleManager = () => {
       if (imageFile) {
         const existingImages = mediaForMessage.filter((m) => (m.type || '').toLowerCase() === 'image');
         for (const media of existingImages) {
-          await fetch(`${MEDIA_API}/media/${media.id}`, {
+          await fetch(`${getPresseLocaleMediaApiRoot()}/media/${media.id}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
           });
@@ -109,7 +107,7 @@ const PresseGeneraleManager = () => {
         const fd = new FormData();
         fd.append('image', imageFile);
         fd.append('messageId', editingId);
-        await fetch(`${MEDIA_API}/uploadImage`, {
+        await fetch(`${getPresseLocaleMediaApiRoot()}/uploadImage/`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
           body: fd
@@ -119,7 +117,7 @@ const PresseGeneraleManager = () => {
       if (videoFile) {
         const existingVideos = mediaForMessage.filter((m) => (m.type || '').toLowerCase() === 'video');
         for (const media of existingVideos) {
-          await fetch(`${MEDIA_API}/media/${media.id}`, {
+          await fetch(`${getPresseLocaleMediaApiRoot()}/media/${media.id}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
           });
@@ -127,7 +125,7 @@ const PresseGeneraleManager = () => {
         const fd = new FormData();
         fd.append('video', videoFile);
         fd.append('messageId', editingId);
-        await fetch(`${MEDIA_API}/uploadVideo`, {
+        await fetch(`${getPresseLocaleMediaApiRoot()}/uploadVideo/`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
           body: fd
@@ -145,7 +143,7 @@ const PresseGeneraleManager = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('⚠️ Supprimer ?')) return;
     try {
-      const res = await fetch(`${PRESSE_LOCALE_API}/messages/${id}`, {
+      const res = await fetch(`${getPresseLocaleApiRoot()}/messages/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${localStorage.getItem("accessToken")}` }
       });

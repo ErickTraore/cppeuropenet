@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { triggerFormatReset } from '../../../utils/formatController';
 
-const USER_API = process.env.REACT_APP_PRESSE_LOCALE_API || process.env.REACT_APP_USER_API;
-const MEDIA_API = process.env.REACT_APP_PRESSE_LOCALE_MEDIA_API || process.env.REACT_APP_MEDIA_API;
+import { getPresseLocaleApiRoot, getPresseLocaleMediaApiRoot } from '../../../utils/presseLocaleApi';
+
 const SITE_KEY = process.env.REACT_APP_PRESSE_LOCALE_SITE_KEY || 'cppEurope';
 
 const FormPresseLocalePhoto = () => {
@@ -35,13 +35,19 @@ const FormPresseLocalePhoto = () => {
     formData.append('image', file);
     formData.append('messageId', messageId);
 
-    const response = await fetch(`${MEDIA_API}/uploadImage/`, {
+    const response = await fetch(`${getPresseLocaleMediaApiRoot()}/uploadImage/`, {
       method: 'POST',
       body: formData,
     });
 
     if (!response.ok) {
       throw new Error(`❌ Erreur upload image: ${response.status}`);
+    }
+    const ct = response.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) {
+      throw new Error(
+        '❌ Upload image : la réponse n’est pas du JSON (vérifiez le proxy /api/media-locale → mediaLocale :7008).'
+      );
     }
 
     const data = await response.json();
@@ -66,7 +72,7 @@ const FormPresseLocalePhoto = () => {
     setSuccessMessage('');
 
     try {
-      const messageResponse = await fetch(`${USER_API}/messages/new`, {
+      const messageResponse = await fetch(`${getPresseLocaleApiRoot()}/messages/new/`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
@@ -95,7 +101,7 @@ const FormPresseLocalePhoto = () => {
 
       if (uploadedFilename) {
         try {
-          const updateResponse = await fetch(`${USER_API}/messages/${newMessageId}`, {
+          const updateResponse = await fetch(`${getPresseLocaleApiRoot()}/messages/${newMessageId}`, {
             method: 'PUT',
             headers: {
               Authorization: `Bearer ${localStorage.getItem('accessToken')}`,

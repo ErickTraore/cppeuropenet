@@ -1,0 +1,58 @@
+# File: hostinger-cppeurope/docker-compose.dev.yml
+
+version: '3.8'
+services:
+  user-backend:
+    build: ./user-backend
+    working_dir: /usr/src/app
+    volumes:
+      - ./user-backend:/usr/src/app
+    env_file:
+      - ./user-backend/.env.development
+    environment:
+      NODE_ENV: development
+      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:8082
+      # .env.development a DB_HOST=localhost ; dans Docker le service MariaDB s'appelle mariadb.
+      DB_HOST: mariadb
+      # Depuis le conteneur, localhost:7017 est faux ; host-gateway = machine hôte (où userMediaProfile écoute en 7017).
+      REACT_APP_MEDIA_API: http://host.docker.internal:7017/api/user-media-profile
+      MEDIA_API_CONTABO: http://host.docker.internal:7017/api/user-media-profile
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: sh -c "npm install && node server.dev.js"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    ports:
+      - "7001:7001"
+    networks:
+      - user-db-net
+
+  mariadb:
+    image: mariadb:11
+    restart: unless-stopped
+    # Aligné sur user-backend/.env.development (DB_USERNAME=c, DB_NAME=…).
+    environment:
+      MARIADB_ROOT_PASSWORD: CppEurope@2025!
+      MARIADB_DATABASE: user_dev_cppeurope_v1
+      MARIADB_USER: c
+      MARIADB_PASSWORD: CppEurope@2025!
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 25s
+    volumes:
+      - user-db-data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    networks:
+      - user-db-net
+
+volumes:
+  user-db-data:
+
+networks:
+  user-db-net:
+    driver: bridge

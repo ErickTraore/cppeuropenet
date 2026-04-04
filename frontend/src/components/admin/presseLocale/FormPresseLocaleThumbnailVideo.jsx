@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { triggerFormatReset } from '../../../utils/formatController';
+import { parsePresseMessageIdFromCreateResponse } from '../../../utils/presseGeneraleMedia';
+import { getPresseLocaleApiRoot, getPresseLocaleMediaApiRoot } from '../../../utils/presseLocaleApi';
 
-const USER_API = process.env.REACT_APP_PRESSE_LOCALE_API || process.env.REACT_APP_USER_API;
-const MEDIA_API = process.env.REACT_APP_PRESSE_LOCALE_MEDIA_API || process.env.REACT_APP_MEDIA_API;
 const SITE_KEY = process.env.REACT_APP_PRESSE_LOCALE_SITE_KEY || 'cppEurope';
 
 const FormPresseLocaleThumbnailVideo = () => {
@@ -53,15 +53,30 @@ const FormPresseLocaleThumbnailVideo = () => {
   const uploadFile = async (file, endpoint, messageId) => {
     const formData = new FormData();
     formData.append(endpoint, file);
-    formData.append('messageId', messageId);
+    formData.append('messageId', String(messageId));
 
-    const response = await fetch(`${MEDIA_API}/upload${endpoint.charAt(0).toUpperCase() + endpoint.slice(1)}`, {
-      method: 'POST',
-      body: formData,
-    });
+    const base = getPresseLocaleMediaApiRoot().replace(/\/$/, '');
+    const path = endpoint === 'image' ? 'uploadImage' : 'uploadVideo';
+    const url = `${base}/${path}/`;
 
-    if (!response.ok) {
-      throw new Error(`Upload ${endpoint} failed: ${response.status}`);
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload ${endpoint} failed: ${response.status}`);
+      }
+      const ct = response.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        throw new Error(
+          `Upload ${endpoint} : réponse non JSON (vérifiez mediaLocale :7008 et le proxy /api/media-locale).`
+        );
+      }
+    } catch (error) {
+      console.error(`Upload error (${endpoint}):`, error);
+      throw error;
     }
   };
 
@@ -83,7 +98,7 @@ const FormPresseLocaleThumbnailVideo = () => {
     setSuccessMessage('');
 
     try {
-      const messageResponse = await fetch(`${USER_API}/messages/new/`, {
+      const messageResponse = await fetch(`${getPresseLocaleApiRoot()}/messages/new/`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
@@ -99,7 +114,11 @@ const FormPresseLocaleThumbnailVideo = () => {
 
       if (!messageResponse.ok) throw new Error(`HTTP ${messageResponse.status}`);
 
-      const { id: newMessageId } = await messageResponse.json();
+      const created = await messageResponse.json();
+      const newMessageId = parsePresseMessageIdFromCreateResponse(created);
+      if (newMessageId == null) {
+        throw new Error('Réponse API presse locale invalide : id du message manquant après création.');
+      }
 
       await uploadFile(newMessage.image, 'image', newMessageId);
       await uploadFile(newMessage.video, 'video', newMessageId);

@@ -17,7 +17,11 @@ module.exports = {
   },
 
   async down (queryInterface, Sequelize) {
-    // Supprimer la colonne categ
-    await queryInterface.removeColumn('Messages', 'categ');
+    // Supprimer la colonne categ si elle existe
+    try {
+      await queryInterface.removeColumn('Messages', 'categ');
+    } catch (e) {
+      console.warn('Colonne categ déjà supprimée ou inexistante, on ignore:', e.message);
+    }
   }
 };

@@ -39,3 +39,13 @@ media-backend/public/mediaprofile/
 *.swp
 *.swo
 *~
+
+# Cypress artefacts (run local)
+cypress/screenshots/
+cypress/videos/
+frontend/cypress/screenshots/
+frontend/cypress/videos/
+frontend/cypress/tmp/
+
+# Fichiers de debug local
+frontend/tables.txt

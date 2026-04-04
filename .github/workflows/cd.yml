@@ -27,7 +27,7 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
 
       - name: Add server to known_hosts
-        run: ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+        run: ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
 
       - name: Deploy on server
         env:
@@ -42,6 +42,9 @@ jobs:
           cd "${DEPLOY_PATH}"
           git fetch --all
           git reset --hard "origin/${BRANCH}"
+
+          echo "--- DEBUG: Affichage du package.json du frontend ---"
+          cat frontend/package.json | grep test || echo "Aucun script test trouvé dans package.json"
 
           if [ "${RUN_E2E}" = "true" ]; then
             bash ./deploy-with-tests.sh

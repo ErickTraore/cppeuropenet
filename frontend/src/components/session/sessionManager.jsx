@@ -4,9 +4,14 @@ import React, { useState, useEffect, useRef, useCallback, createContext, useCont
 import { useDispatch } from 'react-redux';
 import { jwtDecode } from 'jwt-decode';
 import Spinner from '../common/Spinner';
+import { resolveApiUrl } from '../../utils/apiUrls';
 
-const USER_API = process.env.REACT_APP_USER_API;
-const expiryWarning = parseInt(process.env.REACT_APP_SESSION_EXPIRY_WARNING, 10) || 80;
+const USER_API = resolveApiUrl(
+  process.env.REACT_APP_USER_API,
+  'http://localhost:7001/api/users',
+  'USER_API'
+);
+const expiryWarning = parseInt(process.env.REACT_APP_SESSION_EXPIRY_WARNING, 10) || 60;
 
 // Contexte pour partager timeLeft et l'état de phase session entre SessionManager et SessionTimer
 const SessionContext = createContext({
@@ -61,8 +66,8 @@ export const SessionProvider = ({ children, isAuthenticated = false, accessToken
       lastTokenRef.current = accessToken; // Éviter de confondre avec une prolongation au prochain render
       setIsInitialSession(true);
       setJustLoggedIn(true);
-      setTimeLeft(expiryWarning); // 80s après login (ou REACT_APP_SESSION_EXPIRY_WARNING)
-      sessionStorage.setItem('sessionJustLoggedIn', '1'); // Flag pour modale
+      setTimeLeft(expiryWarning); // 60s après login
+      sessionStorage.setItem('sessionJustLoggedIn', '1'); // Flag pour modale (SessionManager)
     }
 
     // Prolongation uniquement : token change alors qu'on était déjà connecté (PAS au premier login)
@@ -125,10 +130,10 @@ const SessionManager = () => {
   const dispatch = useDispatch();
   const context = useContext(SessionContext);
   const timeLeft = context?.timeLeft || 0;
-  const setTimeLeft = context?.setTimeLeft || (() => {});
-  const switchToRealToken = context?.switchToRealToken || (() => {});
   const isInitialSession = context?.isInitialSession ?? true;
   const justLoggedIn = context?.justLoggedIn ?? false;
+  const sessionCtxRef = useRef(context);
+  sessionCtxRef.current = context;
   const [showModal, setShowModal] = useState(false);
   const [isExtending, setIsExtending] = useState(false);
 
@@ -172,8 +177,8 @@ const SessionManager = () => {
     window.location.reload();
   }, [dispatch]);
 
-  // handleExtend doit être au niveau principal du composant
-  const handleExtend = async () => {
+  // Prolongation : même logique pour le bouton « Prolonger » et pour la fin du compte à rebours modale.
+  const handleExtend = useCallback(async () => {
     console.log('🟡 Tentative de prolongation de session...');
     const refreshToken = localStorage.getItem('refreshToken');
     console.log('🔑 refreshToken récupéré :', refreshToken);
@@ -217,8 +222,9 @@ const SessionManager = () => {
           return 0;
         }
       })();
-      switchToRealToken(); // Passe en mode "durée réelle" avant setTimeLeft
-      setTimeLeft(remaining);
+      const ctx = sessionCtxRef.current;
+      ctx?.switchToRealToken?.(); // Passe en mode "durée réelle" avant setTimeLeft
+      ctx?.setTimeLeft?.(remaining);
 
       setShowModal(false);
       setIsExtending(false);
@@ -228,7 +234,10 @@ const SessionManager = () => {
       setIsExtending(false);
       handleLogout();
     }
-  };
+  }, [dispatch, handleLogout]);
+
+  /** Évite de lancer deux prolongations si l’effet se ré-exécute pendant l’async. */
+  const modalExpiryHandledRef = useRef(false);
 
   // Afficher la modale immédiatement après login (le Provider gère le timer 80s)
   useEffect(() => {
@@ -243,11 +252,20 @@ const SessionManager = () => {
     }
   }, []);
 
+  // « Redirection » / reset ressenti après un long upload : ici le compte à rebours de la modale (≈60 s)
+  // atteint 0 pendant que l’utilisateur n’a pas cliqué « Prolonger » → handleLogout() mettait #auth + reload.
+  // On tente d’abord une prolongation silencieuse (refresh token), comme si l’utilisateur avait cliqué.
   useEffect(() => {
-    if (showModal && timeLeft <= 0) {
-      handleLogout();
+    if (!showModal) {
+      modalExpiryHandledRef.current = false;
+      return;
     }
-  }, [showModal, timeLeft, handleLogout]);
+    if (timeLeft > 0) return;
+    if (modalExpiryHandledRef.current) return;
+    modalExpiryHandledRef.current = true;
+
+    void handleExtend();
+  }, [showModal, timeLeft, handleExtend]);
 
   // 🔁 Déconnexion automatique lorsque le timer "réel" (≈30 min) arrive à 0
   // Sans cliquer sur quoi que ce soit, on reproduit le comportement du timer 80s :

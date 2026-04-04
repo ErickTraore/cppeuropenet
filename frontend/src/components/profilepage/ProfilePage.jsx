@@ -8,11 +8,9 @@ import {
   fetchProfileMedia,
   updateProfileMedia
 } from '../../actions/profileActions';
+import { getProfileMediaApiBase } from '../../utils/profileMediaApi';
 import Spinner from '../common/Spinner';
 import "../../styles/pages/ProfilePage.scss";
-
-const MEDIA_API = process.env.REACT_APP_MEDIA_API;
-console.log('[ProfilePage] MEDIA_API =', MEDIA_API);
 
 const ProfilePage = () => {
   const dispatch = useDispatch();
@@ -118,10 +116,10 @@ const ProfilePage = () => {
 
     const formData = new FormData();
     formData.append('image', file);
-    console.log('[ProfilePage] FormData prêt, envoi vers', `${MEDIA_API}/uploadImageProfile`);
+    console.log('[ProfilePage] FormData prêt, envoi vers', `${getProfileMediaApiBase()}/uploadImageProfile`);
 
     try {
-      const response = await fetch(`${MEDIA_API}/uploadImageProfile`, {
+      const response = await fetch(`${getProfileMediaApiBase()}/uploadImageProfile`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
@@ -195,8 +193,14 @@ const ProfilePage = () => {
     if (path.startsWith('/imagesprofile/') || path.startsWith('/mediaprofile/')) return path;
 
     // Autres chemins : tenter via l'API media si configurée
-    if (path.startsWith('/') && MEDIA_API) return `${MEDIA_API}${path}`;
+    if (path.startsWith('/')) return `${getProfileMediaApiBase()}${path}`;
     return fallback;
+  };
+
+  const handleProfileImageError = (e, slot) => {
+    const img = e.currentTarget;
+    img.onerror = null;
+    img.src = resolveProfileMediaSrc(null, slot);
   };
 
   // ---- 9) JSX ----
@@ -290,7 +294,10 @@ const ProfilePage = () => {
 
       {activeTab === "images" && (
         <div className="images__container">
-          {mediaLoading && <Spinner size="medium" text="Chargement des images..." />}
+          {/* Spinner seulement au premier chargement (slots vides) : évite le saut quand PUT met mediaLoading à true */}
+          {mediaLoading && safeSlots.length === 0 && (
+            <Spinner size="medium" text="Chargement des images..." />
+          )}
           {mediaError && <p>Erreur : {mediaError}</p>}
           {!mediaLoading &&
             safeSlots.length === 0 &&
@@ -303,14 +310,16 @@ const ProfilePage = () => {
           <div className="images__container__grid">
             {safeSlots.map((media) => (
               <div key={media.id} className="images__container__grid__card">
-                <img
-                  src={resolveProfileMediaSrc(media.path, media.slot)}
-                  alt="ProfileImage"
-                  className="profile-image"
-                  onError={(e) => {
-                    e.target.src = resolveProfileMediaSrc(null, media.slot);
-                  }}
-                />
+                <div className="images__container__grid__card__image-wrap">
+                  <img
+                    src={resolveProfileMediaSrc(media.path, media.slot)}
+                    alt="ProfileImage"
+                    className="profile-image"
+                    loading="lazy"
+                    decoding="async"
+                    onError={(e) => handleProfileImageError(e, media.slot)}
+                  />
+                </div>
 
                 <div className="images__container__grid__card__upload">
                   <input

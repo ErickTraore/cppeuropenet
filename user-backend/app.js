@@ -4,8 +4,9 @@ const path = require('path');
 const dotenv = require('dotenv');
 const express = require('express');
 const cors = require('cors');
-const { getSignature } = require('./routes/zoomCtrl');
 const apiRouter = require('./apiRouter').router;
+
+// Removing getSignature import and associated route
 
 const app = express();
 
@@ -31,32 +32,39 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
 console.log('🌍 CORS allowedOrigins (user-backend) :', allowedOrigins);
 
 // 🔐 CORS
-app.use(cors({
-  origin: function (origin, callback) {
-    // 1️⃣ Requêtes sans origin (curl, Postman, etc.)
-    if (!origin) {
-      console.log("⚠️ Requête sans origin → acceptée (requête serveur ou interne)");
-      return callback(null, true);
+app.use((req, res, next) => {
+  console.log('--- CORS DEBUG ---');
+  console.log('Method:', req.method);
+  console.log('Origin header:', req.headers.origin);
+  console.log('URL:', req.originalUrl);
+  cors({
+    origin: function (origin, callback) {
+      console.log('CORS check for origin:', origin);
+      if (!origin) {
+        console.log('CORS: Pas d\'origin, requête acceptée');
+        return callback(null, true);
+      }
+      if (isDev || allowedOrigins.includes(origin)) {
+        console.log('CORS: Origin autorisé');
+        return callback(null, true);
+      }
+      console.log('CORS: Origin refusé');
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+    methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+    allowedHeaders: ['Content-Type','Authorization']
+  })(req, res, function(err) {
+    if (err) {
+      console.log('CORS ERROR:', err.message);
+      return res.status(403).json({ error: 'CORS error: Origin not allowed', details: err.message });
     }
+    next();
+  });
+});
 
-    console.log("🌍 Origin reçu :", origin);
-    console.log("📜 Liste des origins autorisés :", allowedOrigins);
-
-    // 2️⃣ Validation stricte
-    if (isDev || allowedOrigins.includes(origin)) {
-      console.log("✅ CORS autorisé pour :", origin);
-      return callback(null, true);
-    }
-
-    // 3️⃣ Refus explicite
-    console.log("❌ CORS refusé pour :", origin);
-    return callback(new Error("Not allowed by CORS"));
-  },
-  credentials: true,
-  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization']
-}));
-
+// S'assurer que toutes les routes acceptent OPTIONS
+app.options('*', cors());
 app.options('*', cors());
 
 // 📦 Middlewares
@@ -65,7 +73,15 @@ app.use(express.urlencoded({ extended: true }));
 
 // 🔁 Routes
 app.get('/', (req, res) => res.status(200).send('USER-BACKEND (prod) actif'));
-app.get('/api/zoom/signature', getSignature);
+app.get('/api/ping', async (req, res) => {
+  try {
+    const { sequelize } = require('./models');
+    await sequelize.authenticate();
+    res.status(200).json({ ok: true, db: 'ok' });
+  } catch (e) {
+    res.status(500).json({ ok: false, db: 'error', error: e.message });
+  }
+});
 app.use('/api', apiRouter);
 
 module.exports = app;

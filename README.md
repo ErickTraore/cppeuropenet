@@ -1,6 +1,6 @@
-# CPPEUROPE.NET - Site Web PPA-CI
+# HOSTINGER-CPPEUROPE.NET - Site Web PPA-CI
 
-Site web de l'association CPPEUROPE.NET) avec gestion de presse, authentification et profils utilisateurs.
+Site web de l'association HOSTINGER-CPPEUROPE.NET avec gestion de presse, authentification et profils utilisateurs.
 
 ## 🏗️ Architecture
 
@@ -17,7 +17,7 @@ Site web de l'association CPPEUROPE.NET) avec gestion de presse, authentificatio
 ```bash
 # Cloner le dépôt
 git clone <url-du-repo>
-cd lespremices
+cd hostinger-cppeurope
 
 # Créer les fichiers .env nécessaires
 # frontend/.env
@@ -34,7 +34,7 @@ docker compose up -d
 ## 📁 Structure du projet
 
 ```
-lespremices/
+hostinger-cppeurope/
 ├── frontend/              # Application React
 │   ├── src/
 │   │   ├── actions/       # Redux actions
@@ -109,10 +109,10 @@ lespremices/
 
 ```bash
 # Exécuter les migrations user-backend
-docker exec lespremices-user-backend-1 npx sequelize-cli db:migrate
+docker exec hostinger-cppeurope-user-backend-1 npx sequelize-cli db:migrate
 
 # Exécuter les migrations media-backend
-docker exec lespremices-media-backend-1 npx sequelize-cli db:migrate
+docker exec hostinger-cppeurope-media-backend-1 npx sequelize-cli db:migrate
 ```
 
 ## 🔧 Développement
@@ -146,7 +146,7 @@ REACT_APP_BASE_URL=<url-base-media>
 DB_HOST=mariadb
 DB_USER=root
 DB_PASSWORD=<password>
-DB_NAME=lespremices
+DB_NAME=hostinger-cppeurope
 JWT_SECRET=<secret>
 ```
 
@@ -155,7 +155,7 @@ JWT_SECRET=<secret>
 DB_HOST=mariadb
 DB_USER=root
 DB_PASSWORD=<password>
-DB_NAME=lespremices_media
+DB_NAME=hostinger-cppeurope_media
 ```
 
 ## 📦 Dépendances principales
@@ -177,14 +177,14 @@ DB_NAME=lespremices_media
 
 ### Logs Docker
 ```bash
-docker logs lespremices-user-backend-1
-docker logs lespremices-media-backend-1
-docker logs lespremices-nginx-1
+docker logs hostinger-cppeurope-user-backend-1
+docker logs hostinger-cppeurope-media-backend-1
+docker logs hostinger-cppeurope-nginx-1
 ```
 
 ### Base de données
 ```bash
-docker exec -it lespremices-mariadb-1 mysql -u root -p
+docker exec -it hostinger-cppeurope-mariadb-1 mysql -u root -p
 ```
 
 ## ⚠️ Précautions à prendre pour une copie

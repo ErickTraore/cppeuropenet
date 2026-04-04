@@ -3,10 +3,11 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { triggerFormatReset } from '../../../utils/formatController';
+import { resolveApiUrl } from '../../../utils/apiUrls';
+import { getPresseGeneraleMediaApiBase, parsePresseMessageIdFromCreateResponse } from '../../../utils/presseGeneraleMedia';
 
-const USER_API = process.env.REACT_APP_USER_API;
-const PRESSE_GENERALE_API = process.env.REACT_APP_PRESSE_GENERALE_API || USER_API;
-const MEDIA_API = process.env.REACT_APP_MEDIA_API;
+const USER_API = resolveApiUrl(process.env.REACT_APP_USER_API, 'http://localhost:7001/api/users', 'USER_API');
+const PRESSE_GENERALE_API = resolveApiUrl(process.env.REACT_APP_PRESSE_GENERALE_API, USER_API, 'PRESSE_GENERALE_API');
 
 const FormArticleThumbnailVideo = () => {
   const [newMessage, setNewMessage] = useState({
@@ -58,16 +59,26 @@ const FormArticleThumbnailVideo = () => {
   const uploadFile = async (file, endpoint, messageId) => {
     const formData = new FormData();
     formData.append(endpoint, file);
-    formData.append('messageId', messageId);
+    formData.append('messageId', String(messageId));
+
+    const base = getPresseGeneraleMediaApiBase().replace(/\/$/, '');
+    const path = endpoint === 'image' ? 'uploadImage' : 'uploadVideo';
+    const url = `${base}/${path}/`;
 
     try {
-      const response = await fetch(`${MEDIA_API}/upload${endpoint.charAt(0).toUpperCase() + endpoint.slice(1)}`, {
+      const response = await fetch(url, {
         method: 'POST',
         body: formData,
       });
 
       if (!response.ok) {
         throw new Error(`Upload ${endpoint} failed: ${response.status}`);
+      }
+      const ct = response.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        throw new Error(
+          `Upload ${endpoint} : réponse non JSON (vérifiez mediaGle :7004 et le proxy /api/media).`
+        );
       }
     } catch (error) {
       console.error(`Upload error (${endpoint}):`, error);
@@ -108,7 +119,11 @@ const FormArticleThumbnailVideo = () => {
 
       if (!messageResponse.ok) throw new Error(`HTTP ${messageResponse.status}`);
 
-      const { id: newMessageId } = await messageResponse.json();
+      const created = await messageResponse.json();
+      const newMessageId = parsePresseMessageIdFromCreateResponse(created);
+      if (newMessageId == null) {
+        throw new Error('Réponse API presse invalide : id du message manquant après création.');
+      }
 
       await uploadFile(newMessage.image, 'image', newMessageId);
       await uploadFile(newMessage.video, 'video', newMessageId);

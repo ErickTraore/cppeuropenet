@@ -10,7 +10,8 @@ module.exports = {
   generateTokenForUser: function (userData) {
     return jwt.sign({
         userId: userData.id,
-        isAdmin: userData.isAdmin
+        // MariaDB/Sequelize peut exposer TINYINT comme 0/1 ; le middleware attend un booléen JWT.
+        isAdmin: Boolean(userData.isAdmin),
       },
       JWT_SIGN_SECRET, {
         expiresIn: EXPIRE_SESSION
@@ -19,7 +20,7 @@ module.exports = {
   generateExtendSessionToken: function (userData) {
     return jwt.sign({
         userId: userData.id,
-        isAdmin: userData.isAdmin
+        isAdmin: Boolean(userData.isAdmin),
       },
       JWT_SIGN_SECRET, {
         expiresIn: EXPIRE_EXTEND_SESSION

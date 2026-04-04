@@ -6,6 +6,15 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 In the project directory, you can run:
 
+## E2E Cypress (Rappel)
+
+Pour eviter des echecs inutiles, utiliser toujours ce flux:
+
+1. `npm run pretest:e2e`
+2. `npm run cypress:run:guarded`
+
+Le script `cypress:run:guarded` lance automatiquement le pre-test et n'execute Cypress que si les prerequis sont valides.
+
 ### `npm install`
 ### `npm start`
 

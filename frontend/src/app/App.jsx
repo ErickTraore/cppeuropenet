@@ -1,7 +1,7 @@
 // File: lespremices/frontend/src/app/App.jsx
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import '../styles/main.scss';
 import HamburgerIcon from '../components/hamburgerIcon/HamburgerIcon';
 import PageContent from '../components/pageContent/PageContent';
@@ -28,6 +28,7 @@ export const handleLogout = (dispatch) => {
 };
 
 function App() {
+  const dispatch = useDispatch();
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const [isOpen, setIsOpen] = useState(false);
   // ✅ Initialiser activePage depuis le hash, pas par défaut à 'auth'
@@ -44,6 +45,16 @@ function App() {
   const [openSubmenu, setOpenSubmenu] = useState(null);
 
   const token = localStorage.getItem("accessToken");
+
+  // PageContent affiche admin-presse-generale dès le hash, sans regarder Redux. Si le store perd
+  // isAuthenticated alors qu'un accessToken est encore présent (désync), le menu / horloge disparaissent
+  // tout en laissant cette page — comme sur ta capture. On réaligne le store sur le token.
+  useEffect(() => {
+    const t = localStorage.getItem('accessToken');
+    if (t && !isAuthenticated) {
+      dispatch({ type: 'LOGIN_SUCCESS', payload: t });
+    }
+  }, [isAuthenticated, dispatch]);
   
   // ✅ Memoïser le décodage du token pour éviter de recréer l'objet à chaque render
   const decodedUser = useMemo(() => {

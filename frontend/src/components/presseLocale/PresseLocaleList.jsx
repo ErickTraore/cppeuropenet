@@ -1,15 +1,17 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useState, useRef, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchPresseLocale } from "../../actions/presseLocaleActions";
+import { resolveApiUrl } from "../../utils/apiUrls";
+import {
+  getPresseLocaleMediaApiRoot,
+  getPresseLocaleMediaOrigin,
+  absolutizePresseLocaleMediaPath,
+} from "../../utils/presseLocaleApi";
 import PresseTextOnly from "../presseView/types/PresseTextOnly";
 import PresseImageOnly from "../presseView/types/PresseImageOnly";
 import PresseVideoOnly from "../presseView/types/PresseVideoOnly";
 import PresseImageVideo from "../presseView/types/PresseImageVideo";
 import "../../styles/pages/MessagesList.scss";
-
-const MEDIA_API = process.env.REACT_APP_PRESSE_LOCALE_MEDIA_API || process.env.REACT_APP_MEDIA_API;
-const BASE_URL = process.env.REACT_APP_PRESSE_LOCALE_BASE_URL || process.env.REACT_APP_BASE_URL;
-const MEDIA_BACKEND_URL = `${MEDIA_API}/getMedia`;
 
 const getPresseViewType = (p) => {
   const hasImage = Array.isArray(p.media) && p.media.some(m => (m.type || "").toLowerCase().includes("image"));
@@ -27,6 +29,16 @@ export default function PresseLocaleList() {
   const presses = useSelector((s) => s.presseLocale.filteredMessages);
   const [localPresses, setLocalPresses] = useState([]);
 
+  const BASE_URL = useMemo(
+    () =>
+      resolveApiUrl(
+        process.env.REACT_APP_PRESSE_LOCALE_BASE_URL || process.env.REACT_APP_BASE_URL,
+        getPresseLocaleMediaOrigin(),
+        'BASE_URL'
+      ),
+    []
+  );
+
   const [activeId, setActiveId] = useState(null);
   const toggle = (id) => setActiveId(prev => prev === id ? null : id);
   const isActive = (id) => activeId === id;
@@ -36,44 +48,101 @@ export default function PresseLocaleList() {
   const isVideoActive = (id) => videoActiveId === id;
 
   const videoRefs = useRef({});
-  const [mediaLoaded, setMediaLoaded] = useState(false);
+
+  const pressesKey = useMemo(() => {
+    if (!Array.isArray(presses)) return "";
+    return presses.map((p) => p?.id).filter(Boolean).join(",");
+  }, [presses]);
 
   useEffect(() => { dispatch(fetchPresseLocale()); }, [dispatch]);
 
-  useEffect(() => {
-    if (!Array.isArray(presses) || presses.length === 0) return;
-    if (mediaLoaded) return;
+  /** Évite d’afficher l’ancienne liste enrichie quand les ids Redux changent (sinon médias décalés / cartes obsolètes). */
+  useLayoutEffect(() => {
+    setLocalPresses([]);
+  }, [pressesKey]);
 
-    const valid = presses.filter(p => p && p.id);
+  useEffect(() => {
+    let cancelled = false;
+    if (!Array.isArray(presses) || presses.length === 0) {
+      setLocalPresses([]);
+      return;
+    }
+    const valid = presses.filter((p) => p && p.id);
     if (valid.length === 0) return;
 
     const load = async () => {
+      const mediaRoot = getPresseLocaleMediaApiRoot().replace(/\/$/, "");
       const enriched = await Promise.all(
         valid.map(async (p) => {
+          const { media: _ignoreReduxMedia, ...presseSansMedia } = p;
           try {
-            const res = await fetch(`${MEDIA_BACKEND_URL}/${p.id}`, {
+            const res = await fetch(`${mediaRoot}/getMedia/${p.id}`, {
               headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` }
             });
-            if (!res.ok) return { ...p, media: [] };
+            if (!res.ok) return { ...presseSansMedia, media: [] };
             const data = await res.json();
-            const normalized = (Array.isArray(data) ? data : []).map(f => ({
-              ...f,
-              path: f.url || f.path
-            }));
+            const raw = Array.isArray(data) ? data : [];
+            const normalized = raw
+              .filter((f) => f && String(f.messageId) === String(p.id))
+              .map((f) => ({
+                ...f,
+                path: absolutizePresseLocaleMediaPath(f.url || f.path),
+              }));
 
-            return { ...p, media: normalized };
+            return { ...presseSansMedia, media: normalized };
           } catch {
-            return { ...p, media: [] };
+            return { ...presseSansMedia, media: [] };
           }
         })
       );
-
-      setLocalPresses(enriched);
-      setMediaLoaded(true);
+      if (!cancelled) setLocalPresses(enriched);
     };
 
     load();
-  }, [presses, mediaLoaded]);
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- médias rechargés quand pressesKey (ids) change
+  }, [pressesKey]);
+
+  /** Ids Redux courants (triés) : on n’affiche le `media` enrichi côté navigateur que si localPresses est aligné. */
+  const pressesIdsSorted = useMemo(() => {
+    if (!Array.isArray(presses)) return '';
+    return presses
+      .map((p) => p?.id)
+      .filter(Boolean)
+      .slice()
+      .sort((a, b) => a - b)
+      .join(',');
+  }, [presses]);
+
+  const localIdsSorted = useMemo(() => {
+    if (!Array.isArray(localPresses)) return '';
+    return localPresses
+      .map((p) => p?.id)
+      .filter(Boolean)
+      .slice()
+      .sort((a, b) => a - b)
+      .join(',');
+  }, [localPresses]);
+
+  const mediaFromBrowserReady =
+    pressesIdsSorted.length > 0 && pressesIdsSorted === localIdsSorted && localPresses.length > 0;
+
+  const displayPresses = useMemo(() => {
+    if (!Array.isArray(presses)) return [];
+    if (mediaFromBrowserReady) {
+      return localPresses.map((p) => ({
+        ...p,
+        media: Array.isArray(p.media) ? p.media : [],
+      }));
+    }
+    /* Pas encore chargé ou reset : ignorer `media` Redux (souvent enrichi par le serveur avec la mauvaise URL getMedia). */
+    return presses.map((p) => {
+      const { media: _pollution, ...rest } = p;
+      return { ...rest, media: [] };
+    });
+  }, [localPresses, presses, mediaFromBrowserReady]);
 
   return (
     <div className="presse">
@@ -89,7 +158,7 @@ export default function PresseLocaleList() {
               <p className="presse__container__messagelist__empty__add">Aucun contenu disponible.</p>
             </div>
           ) : (
-            (localPresses.length > 0 ? localPresses : presses).map((p) => {
+            displayPresses.map((p) => {
               const type = getPresseViewType(p);
 
               if (type === "text-only")

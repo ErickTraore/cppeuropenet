@@ -1,0 +1,51 @@
+[
+  {
+    "name": "mediaGle-backend",
+    "path": "contabo-cppeurope/mediaGle-backend",
+    "start": "node server.prod.js",
+    "port": 7004,
+    "docker": true
+  },
+  {
+    "name": "mediaLocale-backend",
+    "path": "contabo-cppeurope/mediaLocale-backend",
+    "start": "node server.prod.js",
+    "port": 7008,
+    "docker": true
+  },
+  {
+    "name": "presseGenerale-backend",
+    "path": "contabo-cppeurope/presseGenerale-backend",
+    "start": "node server.prod.js",
+    "port": 7012,
+    "docker": true
+  },
+  {
+    "name": "presseLocale-backend",
+    "path": "contabo-cppeurope/presseLocale-backend",
+    "start": "node server.prod.js",
+    "port": 7005,
+    "docker": true
+  },
+  {
+    "name": "userMediaProfile-backend",
+    "path": "contabo-cppeurope/userMediaProfile-backend",
+    "start": "node server.prod.js",
+    "port": 7017,
+    "docker": true
+  },
+  {
+    "name": "user-backend (hostinger)",
+    "path": "hostinger-cppeurope/user-backend",
+    "start": "node server.prod.js",
+    "port": 7001,
+    "docker": true
+  },
+  {
+    "name": "frontend (hostinger)",
+    "path": "hostinger-cppeurope/frontend",
+    "start": "npm run build && PORT=8082 node server.prod.js",
+    "port": 8082,
+    "docker": true
+  }
+]

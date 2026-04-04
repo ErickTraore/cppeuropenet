@@ -1,5 +1,6 @@
 // File: presse/PresseVideoPlayer.jsx
 import React, { useState, useRef, useEffect } from "react";
+import { getPresseGeneraleAssetOrigin } from "../../utils/presseGeneraleMedia";
 
 export default function PresseVideoPlayer({
     presse,
@@ -8,14 +9,21 @@ export default function PresseVideoPlayer({
     toggle,
     withPoster = false
 }) {
-    const BASE_URL = process.env.REACT_APP_BASE_URL;
+    const BASE_URL = getPresseGeneraleAssetOrigin();
+    /** Médias enrichis côté PresseList : path peut être déjà une URL absolue (absolutizePresseGeneraleMediaUrl). */
+    const assetSrc = (path) => {
+        if (!path) return "";
+        if (/^https?:\/\//i.test(path)) return path;
+        return `${BASE_URL}${path.startsWith("/") ? "" : "/"}${path}`;
+    };
     const id = presse.id;
     const [playing, setPlaying] = useState(false);
     const [controlsVisible, setControlsVisible] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const hideTimer = useRef(null);
 
-    const video = videoRefs.current[id];
+    /** Ref du <video> : ne pas figer dans une const au render (le ref se remplit après, sans re-render). */
+    const getVideo = () => videoRefs.current[id];
 
     const showControls = () => {
         setControlsVisible(true);
@@ -44,18 +52,19 @@ export default function PresseVideoPlayer({
     }, []);
 
     const poster = withPoster
-        ? `${BASE_URL}${presse.media.find((m) => (m.type || "").toLowerCase().includes("image"))?.path || ""
-        }`
+        ? assetSrc(presse.media.find((m) => (m.type || "").toLowerCase().includes("image"))?.path || "")
         : undefined;
 
-    const videoSrc = `${BASE_URL}${presse.media.find((m) => (m.type || "").toLowerCase().includes("video"))?.path || ""
-        }`;
+    const videoSrc = assetSrc(
+        presse.media.find((m) => (m.type || "").toLowerCase().includes("video"))?.path || ""
+    );
 
     const toggleFullscreen = () => {
-        if (!video) return;
+        const v = getVideo();
+        if (!v) return;
 
         if (!document.fullscreenElement) {
-            video.requestFullscreen?.();
+            v.requestFullscreen?.();
         } else {
             document.exitFullscreen?.();
         }
@@ -79,16 +88,18 @@ export default function PresseVideoPlayer({
             }}
             onMouseEnter={() => {
                 showControls();
-                if (video && !isActive(id)) {
-                    video.play();
+                const v = getVideo();
+                if (v && !isActive(id)) {
+                    v.play().catch(() => {});
                 }
             }}
             onMouseLeave={() => {
                 if (playing) scheduleHide(800);
                 else setControlsVisible(false);
-                if (video && !isActive(id)) {
-                    video.pause();
-                    video.currentTime = 0;
+                const v = getVideo();
+                if (v && !isActive(id)) {
+                    v.pause();
+                    v.currentTime = 0;
                 }
             }}
         >
@@ -132,7 +143,8 @@ export default function PresseVideoPlayer({
                     <button
                         className="presse__message__media__videoWrapper__control presse__message__media__videoWrapper__control--back"
                         onClick={() => {
-                            if (video) video.currentTime = Math.max(0, video.currentTime - 10);
+                            const v = getVideo();
+                            if (v) v.currentTime = Math.max(0, v.currentTime - 10);
                         }}
                     >
                         <i className="fas fa-backward"></i>
@@ -141,12 +153,13 @@ export default function PresseVideoPlayer({
                     <button
                         className="presse__message__media__videoWrapper__control presse__message__media__videoWrapper__control--play"
                         onClick={() => {
-                            if (!video) return;
-                            if (video.paused) {
-                                video.play();
+                            const v = getVideo();
+                            if (!v) return;
+                            if (v.paused) {
+                                v.play().catch(() => {});
                                 setPlaying(true);
                             } else {
-                                video.pause();
+                                v.pause();
                                 setPlaying(false);
                             }
                         }}
@@ -157,7 +170,8 @@ export default function PresseVideoPlayer({
                     <button
                         className="presse__message__media__videoWrapper__control presse__message__media__videoWrapper__control--forward"
                         onClick={() => {
-                            if (video) video.currentTime = Math.min(video.duration || Infinity, video.currentTime + 10);
+                            const v = getVideo();
+                            if (v) v.currentTime = Math.min(v.duration || Infinity, v.currentTime + 10);
                         }}
                     >
                         <i className="fas fa-forward"></i>
@@ -182,7 +196,8 @@ export default function PresseVideoPlayer({
                                         key={s}
                                         className={`settings__option ${s === 1 ? "is-default" : ""}`}
                                         onClick={() => {
-                                            if (video) video.playbackRate = s;
+                                            const v = getVideo();
+                                            if (v) v.playbackRate = s;
                                             closeSettings();
                                         }}
                                     >
@@ -207,7 +222,7 @@ export default function PresseVideoPlayer({
                     className="presse__message__media__videoWrapper__overlay"
                     onClick={() => {
                         toggle(id);
-                        videoRefs.current[id]?.play();
+                        getVideo()?.play().catch(() => {});
                     }}
                 >
                     <div className="presse__message__media__videoWrapper__overlay__play"></div>

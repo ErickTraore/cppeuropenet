@@ -1,10 +1,12 @@
 // File: frontend/src/components/admin/presse/FormArticlePhoto.jsx
 
 import React, { useState, useRef } from 'react';
+import { resolveApiUrl } from '../../../utils/apiUrls';
+import { getPresseGeneraleMediaApiBase, parsePresseMessageIdFromCreateResponse } from '../../../utils/presseGeneraleMedia';
 
-const USER_API = process.env.REACT_APP_USER_API;
-const PRESSE_GENERALE_API = process.env.REACT_APP_PRESSE_GENERALE_API || USER_API;
-const MEDIA_API = process.env.REACT_APP_MEDIA_API;
+const USER_API = resolveApiUrl(process.env.REACT_APP_USER_API, 'http://localhost:7001/api/users', 'USER_API');
+const PRESSE_GENERALE_API = resolveApiUrl(process.env.REACT_APP_PRESSE_GENERALE_API, USER_API, 'PRESSE_GENERALE_API');
+const PRESSE_MEDIA_API = `${getPresseGeneraleMediaApiBase().replace(/\/$/, '')}`;
 
 const FormArticlePhoto = () => {
   const [newMessage, setNewMessage] = useState({
@@ -37,10 +39,10 @@ const FormArticlePhoto = () => {
   const uploadImage = async (file, messageId) => {
     const formData = new FormData();
     formData.append('image', file);
-    formData.append('messageId', messageId);
+    formData.append('messageId', String(messageId));
 
     try {
-      const response = await fetch(`${MEDIA_API}/uploadImage/`, {
+      const response = await fetch(`${PRESSE_MEDIA_API}/uploadImage/`, {
         method: 'POST',
         body: formData,
       });
@@ -48,12 +50,16 @@ const FormArticlePhoto = () => {
       if (!response.ok) {
         throw new Error(`❌ Erreur upload image: ${response.status}`);
       }
-      
+      const ct = response.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        throw new Error('❌ Upload image : la réponse n’est pas du JSON (vérifiez le proxy /api/media → mediaGle :7004).');
+      }
+
       const data = await response.json();
       console.log('✅ Image envoyée avec succès:', data);
       
-      // Retourner le nom du fichier uploadé
-      return data.filename || file.name;
+      // Retourner le nom du fichier uploadé (API renvoie { message, media })
+      return data.media?.filename || data.filename || file.name;
     } catch (error) {
       console.error('❌ Erreur lors de l\'upload de l\'image:', error);
       throw error;
@@ -100,7 +106,11 @@ const FormArticlePhoto = () => {
         throw new Error(`❌ Erreur HTTP ${messageResponse.status}`);
       }
 
-      const { id: newMessageId } = await messageResponse.json();
+      const created = await messageResponse.json();
+      const newMessageId = parsePresseMessageIdFromCreateResponse(created);
+      if (newMessageId == null) {
+        throw new Error('Réponse API presse invalide : id du message manquant après création.');
+      }
       console.log('✅ Message créé avec ID:', newMessageId);
 
       // Uploader l'image
@@ -151,11 +161,10 @@ const FormArticlePhoto = () => {
       // Afficher le message de succès
       setSuccessMessage('✅ Article publié avec succès !');
       console.log('✅ SUCCESS MESSAGE SET');
-      
-      // Recharger la page après 4 secondes pour voir le nouvel article
-      setTimeout(() => {
-        window.location.reload();
-      }, 4000);
+
+      // Pas de reload ni triggerFormatReset : évite tout effet de « reset » global et garde menu/horloge.
+      // Changer de format reste possible via le bouton du parent.
+      setTimeout(() => setSuccessMessage(''), 6000);
     } catch (error) {
       console.error('❌ Erreur lors de l\'envoi:', error);
       console.error('Error details:', { message: error.message, stack: error.stack });
