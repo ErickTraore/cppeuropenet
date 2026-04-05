@@ -8,7 +8,7 @@ const USER_API = resolveApiUrl(process.env.REACT_APP_USER_API, 'http://localhost
 const PRESSE_GENERALE_API = resolveApiUrl(process.env.REACT_APP_PRESSE_GENERALE_API, USER_API, 'PRESSE_GENERALE_API');
 const PRESSE_MEDIA_API = `${getPresseGeneraleMediaApiBase().replace(/\/$/, '')}`;
 
-const FormArticlePhoto = () => {
+const FormArticlePhoto = ({ presseFormat = 'article-photo' }) => {
   const [newMessage, setNewMessage] = useState({
     title: '',
     content: '',
@@ -95,7 +95,8 @@ const FormArticlePhoto = () => {
         body: JSON.stringify({
           title: newMessage.title,
           content: newMessage.content,
-          categ: 'presse'
+          categ: 'presse',
+          format: presseFormat,
         }),
       });
 

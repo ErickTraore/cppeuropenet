@@ -35,7 +35,7 @@ describe('Presse Générale - Create (option 4: titre + contenu + photo + vidéo
         method: 'POST',
         url: apiMessages() + 'new/',
         headers: { Authorization: 'Bearer ' + token },
-        body: { title: titre, content: contenu, categ: 'presse' },
+        body: { title: titre, content: contenu, categ: 'presse', format: 'article' },
       }).its('status').should('be.oneOf', [200, 201]);
     });
   });

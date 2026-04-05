@@ -26,7 +26,7 @@ describe('036 - Presse générale — Consulter après création (option 3 vidé
     cy.window().then((win) => {
       const token = win.localStorage.getItem('accessToken');
       expect(token).to.be.a('string').and.not.be.empty;
-      return cy.apiCreatePresseGeneraleMessage(token, titre, contenu).then((id) => {
+      return cy.apiCreatePresseGeneraleMessage(token, titre, contenu, 'article-video').then((id) => {
         cy.wrap(id).as('presseMessageId');
         return cy.apiUploadPresseGeneraleVideo(token, id);
       });

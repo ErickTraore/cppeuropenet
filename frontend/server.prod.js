@@ -18,6 +18,9 @@ const PRESSE_MEDIA_LOC_PORT = parseInt(process.env.PRESSE_MEDIA_LOC_PORT || '700
 const PRESSE_LOCALE_MSG_HOST = process.env.PRESSE_LOCALE_MSG_HOST || '127.0.0.1';
 const PRESSE_LOCALE_MSG_PORT = parseInt(process.env.PRESSE_LOCALE_MSG_PORT || '7005', 10);
 
+const HOME_CONFIG_HOST = process.env.HOME_CONFIG_HOST || '127.0.0.1';
+const HOME_CONFIG_PORT = parseInt(process.env.HOME_CONFIG_PORT || '7020', 10);
+
 /** Proxy HTTP : chemin exact (query incluse si présente dans targetPath). */
 function proxyRawPath(req, res, hostname, port, targetPath, proxyOpts = {}) {
   const headers = { ...req.headers, host: `${hostname}:${port}` };
@@ -170,6 +173,12 @@ app.use((req, res, next) => {
   proxyRawPath(req, res, PRESSE_LOCALE_MSG_HOST, PRESSE_LOCALE_MSG_PORT, target, { omitOrigin: true });
 });
 
+app.use((req, res, next) => {
+  const o = req.originalUrl || '';
+  if (!o.startsWith('/api/home-config')) return next();
+  proxyRawPath(req, res, HOME_CONFIG_HOST, HOME_CONFIG_PORT, o, { omitOrigin: true });
+});
+
 // Même routage que server.dev.js : sans cela, /api/uploads et /api/media renvoient index.html (pas les fichiers).
 app.use('/mediaprofile', (req, res) => proxyToMedia(req, res, '/mediaprofile'));
 app.use('/imagesprofile', (req, res) => proxyToMedia(req, res, '/imagesprofile'));
@@ -193,4 +202,5 @@ app.listen(PORT, () => {
   );
   console.log(`  → Proxy /api/user-media-profile → http://${MEDIA_HOST}:${MEDIA_PORT}`);
   console.log(`  → Proxy /api/presse-locale → http://${PRESSE_LOCALE_MSG_HOST}:${PRESSE_LOCALE_MSG_PORT}`);
+  console.log(`  → Proxy /api/home-config → http://${HOME_CONFIG_HOST}:${HOME_CONFIG_PORT}`);
 });

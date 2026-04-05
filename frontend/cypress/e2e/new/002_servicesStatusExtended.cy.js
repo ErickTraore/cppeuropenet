@@ -49,4 +49,10 @@ describe('Vérification des services essentiels (Contabo CPP Europe)', () => {
       .should('eq', 200);
     cy.request(`${base}/api/__health/user-media-profile`).its('body.ok').should('be.true');
   });
+
+  it('home-config-backend répond (GET via front)', () => {
+    const base = Cypress.config('baseUrl');
+    cy.request(`${base}/api/home-config`).its('status').should('eq', 200);
+    cy.request(`${base}/api/home-config`).its('body.categories').should('have.length', 3);
+  });
 });

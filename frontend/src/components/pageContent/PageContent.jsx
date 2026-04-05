@@ -14,11 +14,13 @@ import PresseLocaleManager from '../presseLocale/PresseLocaleManager';
 import PresseLocaleConsulter from '../presseLocale/PresseLocaleConsulter';
 import PresseLocaleCreer from '../presseLocale/PresseLocaleCreer';
 import ProfilePage from '../profilepage/ProfilePage';
+import AdminHomeConfig from '../admin/AdminHomeConfig';
 
 const PageContent = React.memo(({ activePage }) => {
   return (
     <div className="content" key={activePage}>
-      {activePage === 'home' && <Home/>}
+      {activePage === 'home' && <Home />}
+      {activePage === 'admin-home-config' && <AdminHomeConfig />}
       {activePage === 'auth' && <Auth />}
       {activePage === 'register' && <Register />}
       {activePage === 'contact' && <ContactForm />}

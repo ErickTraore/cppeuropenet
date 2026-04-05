@@ -9,6 +9,7 @@ module.exports = function setupProxy(app) {
   const targetLoc = process.env.PRESSE_MEDIA_LOC_PROXY || 'http://127.0.0.1:7008';
   const targetProfile = process.env.MEDIA_STATIC_PROXY || 'http://127.0.0.1:7017';
   const targetPresseLocaleApi = process.env.PRESSE_LOCALE_MSG_PROXY || 'http://127.0.0.1:7005';
+  const targetHomeConfig = process.env.HOME_CONFIG_PROXY || 'http://127.0.0.1:7020';
 
   app.use(
     '/api/user-media-profile',
@@ -38,4 +39,14 @@ module.exports = function setupProxy(app) {
   app.use('/api/uploads', createProxyMiddleware({ target: targetGle, changeOrigin: true }));
   app.use('/api/media-locale', createProxyMiddleware({ target: targetLoc, changeOrigin: true }));
   app.use('/api/uploads-locale', createProxyMiddleware({ target: targetLoc, changeOrigin: true }));
+  app.use(
+    '/api/home-config',
+    createProxyMiddleware({
+      target: targetHomeConfig,
+      changeOrigin: true,
+      onProxyReq: (proxyReq) => {
+        proxyReq.removeHeader('origin');
+      },
+    })
+  );
 };

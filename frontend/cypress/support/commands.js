@@ -137,7 +137,7 @@ Cypress.Commands.add('cleanupPresseLocaleByTitle', (titre) => {
 });
 
 /** Création message presse générale (API directe, pour enchaîner upload média fiable côté Node). */
-Cypress.Commands.add('apiCreatePresseGeneraleMessage', (token, titre, contenu) => {
+Cypress.Commands.add('apiCreatePresseGeneraleMessage', (token, titre, contenu, format = 'article') => {
   return cy
     .request({
       method: 'POST',
@@ -146,7 +146,7 @@ Cypress.Commands.add('apiCreatePresseGeneraleMessage', (token, titre, contenu) =
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: { title: titre, content: contenu, categ: 'presse' },
+      body: { title: titre, content: contenu, categ: 'presse', format },
     })
     .then((res) => {
       expect(res.status).to.be.oneOf([200, 201]);

@@ -35,6 +35,14 @@
     "docker": true
   },
   {
+    "name": "home-config-backend",
+    "path": "contabo-cppeurope/home-config-backend",
+    "start": "node server.prod.js",
+    "localComposeDev": "docker compose -f docker-compose.dev.yml up -d --build",
+    "port": 7020,
+    "docker": true
+  },
+  {
     "name": "user-backend (hostinger)",
     "path": "hostinger-cppeurope/user-backend",
     "start": "node server.prod.js",

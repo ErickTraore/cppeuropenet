@@ -1,57 +1,59 @@
-name: CD
+# CD — déploiement UNIQUEMENT manuel (plus de déploiement automatique à chaque push sur main).
+# Exige une confirmation textuelle pour limiter les erreurs et les déploiements non voulus.
+name: Deploy
 
 on:
-  push:
-    branches: ["main"]
   workflow_dispatch:
     inputs:
-      run_e2e:
-        description: "Run deploy-with-tests.sh with E2E (true) or skip E2E (false)"
+      confirm:
+        description: "Saisir exactement DEPLOY pour lancer le déploiement"
         required: true
-        default: "false"
-        type: choice
-        options:
-          - "false"
-          - "true"
+        type: string
+      git_ref:
+        description: "Branche ou tag Git sur le serveur (ex. main)"
+        required: true
+        default: main
+        type: string
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
-    name: Deploy to VPS
+    name: SSH — pull, validation frontend, Docker
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - name: Configure SSH key
+      - name: Vérifier la confirmation
+        run: |
+          if [ "${{ inputs.confirm }}" != "DEPLOY" ]; then
+            echo "::error::Confirmation invalide. Tu dois saisir exactement DEPLOY."
+            exit 1
+          fi
+
+      - name: Configurer la clé SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
+          echo "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
-      - name: Add server to known_hosts
+      - name: known_hosts
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         run: ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
 
-      - name: Deploy on server
+      - name: Déployer sur le VPS
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-          BRANCH: ${{ github.ref_name }}
-          RUN_E2E: ${{ github.event_name == 'workflow_dispatch' && inputs.run_e2e || 'false' }}
+          GIT_REF: ${{ inputs.git_ref }}
         run: |
-          ssh -i ~/.ssh/id_ed25519 "${DEPLOY_USER}@${DEPLOY_HOST}" << EOF
-          set -e
-          cd "${DEPLOY_PATH}"
-          git fetch --all
-          git reset --hard "origin/${BRANCH}"
-
-          echo "--- DEBUG: Affichage du package.json du frontend ---"
-          cat frontend/package.json | grep test || echo "Aucun script test trouvé dans package.json"
-
-          if [ "${RUN_E2E}" = "true" ]; then
-            bash ./deploy-with-tests.sh
-          else
-            SKIP_E2E=true bash ./deploy-with-tests.sh
-          fi
-
-          docker compose down
-          docker compose up -d --build
-          EOF
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "set -euo pipefail; cd $(printf '%q' "$DEPLOY_PATH"); git fetch origin; git reset --hard $(printf '%q' "origin/$GIT_REF"); bash ./deploy-with-tests.sh; docker compose down; docker compose up -d --build"

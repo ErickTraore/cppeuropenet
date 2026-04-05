@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 
 const USER_API = process.env.REACT_APP_USER_API;
 const PRESSE_GENERALE_API = process.env.REACT_APP_PRESSE_GENERALE_API || USER_API;
-const FormArticle = () => {
+const FormArticle = ({ presseFormat = 'article' }) => {
   const [newMessage, setNewMessage] = useState({
     title: '',
     content: '',
@@ -47,7 +47,8 @@ const FormArticle = () => {
         body: JSON.stringify({
           title: newMessage.title,
           content: newMessage.content,
-          categ: 'presse'
+          categ: 'presse',
+          format: presseFormat,
         }),
       });
 

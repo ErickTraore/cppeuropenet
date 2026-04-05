@@ -1,0 +1,114 @@
+.home-page {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 0 2rem;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+.home-page__hero {
+  background: linear-gradient(90deg, #2563eb 0%, #7c3aed 55%, #9333ea 100%);
+  color: #fff;
+  text-align: center;
+  padding: 1.75rem 1.25rem 2rem;
+  border-radius: 0 0 24px 24px;
+  margin: 0 -0.5rem 1.5rem;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.home-page__categories {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0 0.25rem;
+  margin-bottom: 1.75rem;
+}
+
+.home-page__cat-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #1f2937;
+  font-size: 0.85rem;
+  max-width: 33%;
+}
+
+.home-page__cat-btn--active .home-page__cat-label {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.home-page__cat-thumb-wrap {
+  position: relative;
+  width: 88px;
+  height: 88px;
+}
+
+.home-page__cat-thumb {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  border: 3px solid transparent;
+  box-sizing: border-box;
+}
+
+.home-page__cat-btn--active .home-page__cat-thumb {
+  border-color: #2563eb;
+}
+
+.home-page__cat-check {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #fff;
+  font-size: 12px;
+  line-height: 22px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.home-page__card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+  margin: 0 0.25rem;
+}
+
+.home-page__card-header {
+  background: linear-gradient(90deg, #2563eb 0%, #9333ea 100%);
+  color: #fff;
+  padding: 0.65rem 1rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.home-page__card-img {
+  width: 100%;
+  display: block;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+}
+
+.home-page__loading,
+.home-page__error {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #64748b;
+}
+
+.home-page__error {
+  color: #b91c1c;
+}

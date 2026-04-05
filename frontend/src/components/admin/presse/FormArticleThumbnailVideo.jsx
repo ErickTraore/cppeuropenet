@@ -9,7 +9,7 @@ import { getPresseGeneraleMediaApiBase, parsePresseMessageIdFromCreateResponse }
 const USER_API = resolveApiUrl(process.env.REACT_APP_USER_API, 'http://localhost:7001/api/users', 'USER_API');
 const PRESSE_GENERALE_API = resolveApiUrl(process.env.REACT_APP_PRESSE_GENERALE_API, USER_API, 'PRESSE_GENERALE_API');
 
-const FormArticleThumbnailVideo = () => {
+const FormArticleThumbnailVideo = ({ presseFormat = 'article-thumbnail-video' }) => {
   const [newMessage, setNewMessage] = useState({
     title: '',
     content: '',
@@ -113,7 +113,8 @@ const FormArticleThumbnailVideo = () => {
         body: JSON.stringify({
           title: newMessage.title,
           content: newMessage.content,
-          categ: 'presse'
+          categ: 'presse',
+          format: presseFormat,
         }),
       });
 

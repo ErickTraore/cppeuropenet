@@ -7,6 +7,8 @@
 
 # testing
 /coverage
+# Snapshot E2E spec 042 (restauration home-config si teardown Cypress manqué)
+/cypress/.e2e-home-config-baseline.json
 
 # production
 /build

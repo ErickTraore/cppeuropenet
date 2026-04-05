@@ -55,11 +55,21 @@ describe('Vérification des services essentiels (Hostinger)', () => {
     });
   });
 
-  it('presse générale (7012) : le chemin erroné /api/presse-generale/messages/new reste introuvable (404) sans nginx', () => {
+  it('presse générale (7012) : POST /api/presse-generale/messages/new sans token → 401 (route backend directe)', () => {
     cy.request({
       method: 'POST',
       url: `${presseApi}/api/presse-generale/messages/new`,
       body: { title: 'x', content: 'y' },
+      failOnStatusCode: false,
+    }).then((res) => {
+      expect(res.status, 'route canonique exposée par presseGenerale-backend').to.eq(401);
+    });
+  });
+
+  it('presse générale (7012) : un sous-chemin inexistant renvoie 404', () => {
+    cy.request({
+      method: 'GET',
+      url: `${presseApi}/api/presse-generale/messages/999999999/format`,
       failOnStatusCode: false,
     }).then((res) => {
       expect(res.status).to.eq(404);

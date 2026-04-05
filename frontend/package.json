@@ -15,6 +15,7 @@
     "cypress:run:direct": "env -u ELECTRON_RUN_AS_NODE BROWSERSLIST_IGNORE_OLD_DATA=1 cypress run",
     "cypress:run:guarded": "npm run cypress:run -- --config-file cypress.config.cjs",
     "cypress:run:new": "env -u ELECTRON_RUN_AS_NODE BROWSERSLIST_IGNORE_OLD_DATA=1 cypress run --config-file cypress.config.cjs --spec \"cypress/e2e/new/**/*.cy.js\"",
+    "e2e:restore-home-baseline": "node scripts/restore-e2e-home-baseline.js",
     "browserslist:update": "npx --yes update-browserslist-db@latest",
     "browserslist:update:soft": "npx --yes update-browserslist-db@latest || echo 'Browserslist update skipped'",
     "premerge:check": "npm run build && npm run cypress:run -- --spec cypress/e2e/030_profilePageImagesAvatars.cy.js --config baseUrl=http://localhost:3000",

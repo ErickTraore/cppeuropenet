@@ -8,6 +8,48 @@ const { spawn, spawnSync } = require('child_process');
 const { buildMultipartFileField } = require('./cypress/support/multipartUpload');
 
 const FRONTEND_PROD_PING = 'http://127.0.0.1:8082/api/ping';
+const HOME_CONFIG_BASELINE_FILE = path.join(__dirname, 'cypress', '.e2e-home-config-baseline.json');
+
+/** JSON HTTP (Node) pour login + PUT home-config — teardown fiable hors navigateur. */
+function httpJsonRequest(urlStr, { method = 'GET', headers = {}, jsonBody = null } = {}) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(urlStr);
+    const isHttps = u.protocol === 'https:';
+    const lib = isHttps ? require('https') : http;
+    const opts = {
+      hostname: u.hostname,
+      port: u.port || (isHttps ? 443 : 80),
+      path: `${u.pathname}${u.search}`,
+      method,
+      headers: { ...headers },
+    };
+    let payload = null;
+    if (jsonBody != null) {
+      payload = JSON.stringify(jsonBody);
+      opts.headers['Content-Type'] = 'application/json';
+      opts.headers['Content-Length'] = Buffer.byteLength(payload, 'utf8');
+    }
+    const req = lib.request(opts, (res) => {
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => {
+        const raw = Buffer.concat(chunks).toString('utf8');
+        const ok = res.statusCode >= 200 && res.statusCode < 300;
+        let body = raw;
+        try {
+          body = raw ? JSON.parse(raw) : null;
+        } catch {
+          /* texte */
+        }
+        if (ok) resolve({ status: res.statusCode, body });
+        else reject(new Error(`HTTP ${res.statusCode} ${raw.slice(0, 200)}`));
+      });
+    });
+    req.on('error', reject);
+    if (payload) req.write(payload);
+    req.end();
+  });
+}
 
 function httpPingOk(url) {
   return new Promise((resolve) => {
@@ -124,6 +166,49 @@ module.exports = defineConfig({
           );
         },
         /** Upload multipart fiable (Buffer) — évite la corruption binaire de cy.request sur gros fichiers. */
+        writeHomeConfigBaselineFile({ baseline }) {
+          fs.writeFileSync(HOME_CONFIG_BASELINE_FILE, JSON.stringify(baseline, null, 2), 'utf8');
+          return 'baseline-written';
+        },
+        /**
+         * Restaure GET/PUT home-config depuis le fichier baseline (spec 042).
+         * Côté Node : plus fiable que cy.request dans after si Open est fermé brutalement.
+         */
+        async restoreHomeConfigBaseline({ baseUrl, adminEmail, adminPassword }) {
+          if (!fs.existsSync(HOME_CONFIG_BASELINE_FILE)) {
+            console.warn('[cypress task] Pas de fichier baseline, restauration ignorée.');
+            return 'skip-no-file';
+          }
+          let baseline;
+          try {
+            baseline = JSON.parse(fs.readFileSync(HOME_CONFIG_BASELINE_FILE, 'utf8'));
+          } catch (e) {
+            throw new Error(`Baseline JSON invalide: ${e.message}`);
+          }
+          const loginUrl = 'http://127.0.0.1:7001/api/users/login';
+          const { body: loginBody } = await httpJsonRequest(loginUrl, {
+            method: 'POST',
+            jsonBody: { email: adminEmail, password: adminPassword },
+          });
+          const token = loginBody && loginBody.accessToken;
+          if (!token) throw new Error('Login admin E2E sans accessToken');
+          const putUrl = `${baseUrl.replace(/\/$/, '')}/api/home-config`;
+          await httpJsonRequest(putUrl, {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${token}` },
+            jsonBody: {
+              heroText: baseline.heroText,
+              categories: baseline.categories,
+            },
+          });
+          try {
+            fs.unlinkSync(HOME_CONFIG_BASELINE_FILE);
+          } catch {
+            /* ok */
+          }
+          console.log('[cypress task] Home-config restaurée depuis baseline E2E.');
+          return 'restored';
+        },
         async presseMediaUpload(opts) {
           const {
             token,

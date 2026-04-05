@@ -56,10 +56,18 @@ const PresseGenerale = () => {
                     </p>
 
                     <div className="presse-form-container">
-                        {selectedFormat === 'article' && <FormPresseGle onReset={handleReset} />}
-                        {selectedFormat === 'article-photo' && <FormPresseGlePhoto onReset={handleReset} />}
-                        {selectedFormat === 'article-video' && <FormPresseGleVideo onReset={handleReset} />}
-                        {selectedFormat === 'article-thumbnail-video' && <FormPresseGleThumbnailVideo onReset={handleReset} />}
+                        {selectedFormat === 'article' && (
+                          <FormPresseGle onReset={handleReset} presseFormat={selectedFormat} />
+                        )}
+                        {selectedFormat === 'article-photo' && (
+                          <FormPresseGlePhoto onReset={handleReset} presseFormat={selectedFormat} />
+                        )}
+                        {selectedFormat === 'article-video' && (
+                          <FormPresseGleVideo onReset={handleReset} presseFormat={selectedFormat} />
+                        )}
+                        {selectedFormat === 'article-thumbnail-video' && (
+                          <FormPresseGleThumbnailVideo onReset={handleReset} presseFormat={selectedFormat} />
+                        )}
                     </div>
 
                     <button onClick={handleReset} className="presse-reset-button">

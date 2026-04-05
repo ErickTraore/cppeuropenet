@@ -163,8 +163,20 @@ function App() {
         }
       : { key: 'newpresse-locale', label: 'Presse Locale' };
 
+    const homeItem = isAdmin
+      ? {
+          key: 'home',
+          label: 'Home',
+          defaultKey: 'home',
+          children: [
+            { key: 'home', label: 'Afficher' },
+            { key: 'admin-home-config', label: 'Éditer accueil' },
+          ],
+        }
+      : { key: 'home', label: 'Home' };
+
     return [
-      { key: 'home', label: 'Home' },
+      homeItem,
       presseGenerale,
       presseLocale,
       { key: 'contact', label: 'Contact' },

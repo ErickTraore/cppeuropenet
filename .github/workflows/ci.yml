@@ -1,24 +1,44 @@
+# CI — vérifications automatiques sur chaque push / PR (aucun déploiement).
 name: CI
 
 on:
   push:
-    branches: ["main", "master", "develop"]
+    branches: [main, master, develop]
   pull_request:
-    branches: ["main", "master", "develop"]
+    branches: [main, master, develop]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CI: "true"
+  # Aligné sur l’app derrière nginx / server.prod (même origine :8082 pour les /api/* proxifiés).
+  REACT_APP_USER_API: http://localhost:8082/api/users
+  REACT_APP_PRESSE_GENERALE_API: http://localhost:7012/api
+  REACT_APP_PRESSE_LOCALE_API: http://localhost:8082/api/presse-locale
+  REACT_APP_MEDIA_API: http://localhost:8082/api/media
+  REACT_APP_PROFILE_MEDIA_API: http://localhost:8082/api/user-media-profile
+  REACT_APP_PRESSE_LOCALE_MEDIA_API: http://localhost:8082/api/media-locale
+  REACT_APP_BASE_URL: http://localhost:8082
+  REACT_APP_PRESSE_LOCALE_BASE_URL: http://localhost:8082
+  REACT_APP_PRESSE_LOCALE_SITE_KEY: cppEurope
+  REACT_APP_SESSION_EXPIRY_WARNING: "60"
 
 jobs:
   frontend-build:
-    name: Frontend build
+    name: Frontend — build production
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frontend
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: npm
@@ -27,34 +47,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build frontend
-        env:
-          CI: "true"
-          REACT_APP_USER_API: http://localhost:8082/api/users
-          REACT_APP_PRESSE_GENERALE_API: http://localhost:8082/api/presse-generale
-          REACT_APP_PRESSE_LOCALE_API: http://localhost:8082/api/presse-locale
-          REACT_APP_MEDIA_API: http://localhost:8082/api/media
-          REACT_APP_PROFILE_MEDIA_API: http://localhost:8082/api/user-media-profile
-          REACT_APP_PRESSE_LOCALE_MEDIA_API: http://localhost:8082/api/media-locale
-          REACT_APP_BASE_URL: http://localhost:8082
-          REACT_APP_PRESSE_LOCALE_BASE_URL: http://localhost:8082
-          REACT_APP_PRESSE_LOCALE_SITE_KEY: cppEurope
-          REACT_APP_SESSION_EXPIRY_WARNING: "60"
+      - name: Build
         run: npm run build
 
-  e2e-smoke:
-    name: Cypress smoke
+  cypress-smoke:
+    name: Cypress — smoke (shell public)
     runs-on: ubuntu-latest
     needs: frontend-build
     defaults:
       run:
         working-directory: frontend
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: npm
@@ -63,22 +69,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Start frontend
+      - name: Start dev server (CRA)
+        run: |
+          npm start &
+          npx wait-on http://localhost:3000
+
+      - name: Run smoke spec
         env:
-          REACT_APP_USER_API: http://localhost:8082/api/users
-          REACT_APP_PRESSE_GENERALE_API: http://localhost:8082/api/presse-generale
-          REACT_APP_PRESSE_LOCALE_API: http://localhost:8082/api/presse-locale
-          REACT_APP_MEDIA_API: http://localhost:8082/api/media
-          REACT_APP_PROFILE_MEDIA_API: http://localhost:8082/api/user-media-profile
-          REACT_APP_PRESSE_LOCALE_MEDIA_API: http://localhost:8082/api/media-locale
-          REACT_APP_BASE_URL: http://localhost:8082
-          REACT_APP_PRESSE_LOCALE_BASE_URL: http://localhost:8082
-          REACT_APP_PRESSE_LOCALE_SITE_KEY: cppEurope
-          REACT_APP_SESSION_EXPIRY_WARNING: "60"
-        run: npm start &
-
-      - name: Wait for app
-        run: npx wait-on http://localhost:3000
-
-      - name: Run Cypress smoke spec
-        run: npx cypress run --spec "cypress/e2e/cppeuropeNet.cy.js" --config baseUrl=http://localhost:3000
+          BROWSERSLIST_IGNORE_OLD_DATA: "1"
+        run: |
+          env -u ELECTRON_RUN_AS_NODE npx cypress run \
+            --config-file cypress.config.cjs \
+            --config baseUrl=http://localhost:3000 \
+            --spec "cypress/e2e/new/027_cppeuropeNet.cy.js"

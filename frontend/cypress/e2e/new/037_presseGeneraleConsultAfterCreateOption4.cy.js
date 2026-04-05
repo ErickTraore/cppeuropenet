@@ -21,9 +21,11 @@ describe('037 - Presse générale — Consulter après création (option 4 minia
     cy.window().then((win) => {
       const token = win.localStorage.getItem('accessToken');
       expect(token).to.be.a('string').and.not.be.empty;
-      return cy.apiCreatePresseGeneraleMessage(token, titre, contenu).then((id) => {
-        return cy.apiUploadPresseGeneraleImage(token, id).then(() => cy.apiUploadPresseGeneraleVideo(token, id));
-      });
+      return cy
+        .apiCreatePresseGeneraleMessage(token, titre, contenu, 'article-thumbnail-video')
+        .then((id) =>
+          cy.apiUploadPresseGeneraleImage(token, id).then(() => cy.apiUploadPresseGeneraleVideo(token, id))
+        );
     });
 
     cy.visit('/#newpresse');
