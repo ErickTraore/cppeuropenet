@@ -40,8 +40,26 @@ jobs:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         run: |
           mkdir -p ~/.ssh
-          echo "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
+          KEYFILE="$HOME/.ssh/id_ed25519"
+          TMP=$(mktemp)
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$TMP"
+          sed -i 's/\r$//' "$TMP"
+          # Soit clé PEM/OpenSSH multiligne, soit une seule ligne base64 (évite les collages cassés dans l’UI GitHub).
+          if grep -qE '^-----BEGIN (OPENSSH|RSA|EC) PRIVATE KEY-----' "$TMP"; then
+            mv "$TMP" "$KEYFILE"
+          else
+            if ! base64 -d "$TMP" > "$KEYFILE" 2>/dev/null; then
+              echo "::error::DEPLOY_SSH_KEY invalide : ni en-tête BEGIN… ni base64 décodable. Sur le VPS : base64 -w0 ~/.ssh/github_deploy_cppeurope puis colle UNE seule ligne dans le secret."
+              rm -f "$TMP"
+              exit 1
+            fi
+            rm -f "$TMP"
+          fi
+          chmod 600 "$KEYFILE"
+          if ! ssh-keygen -y -f "$KEYFILE" >/dev/null 2>&1; then
+            echo "::error::Clé privée illisible après écriture. Utilise une ligne base64 : base64 -w0 ~/.ssh/github_deploy_cppeurope"
+            exit 1
+          fi
 
       - name: known_hosts
         env:
