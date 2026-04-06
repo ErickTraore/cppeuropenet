@@ -44,13 +44,20 @@ jobs:
           TMP=$(mktemp)
           printf '%s\n' "$DEPLOY_SSH_KEY" > "$TMP"
           sed -i 's/\r$//' "$TMP"
-          # PEM : BEGIN même si ce n'est pas en début de ligne ; base64 : une ligne ou plusieurs.
+          # PEM : détecter BEGIN même si ligne vide / espace avant (évite faux « ni PEM ni base64 »).
+          # Base64 : une ligne ou plusieurs → tout coller sans espaces/retours puis decoder.
           if grep -qE 'BEGIN (OPENSSH|RSA|EC) PRIVATE KEY' "$TMP"; then
             mv "$TMP" "$KEYFILE"
           else
             B64=$(tr -d ' \n\r\t' < "$TMP")
-            if ! printf '%s' "$B64" | base64 -d > "$KEYFILE" 2>/dev/null; then
-              echo "::error::DEPLOY_SSH_KEY : colle la clé complète (BEGIN…END) ou une ligne base64 : base64 -w0 ~/.ssh/github_deploy_cppeurope"
+            if [ -z "$B64" ]; then
+              echo "::error::DEPLOY_SSH_KEY est vide (environment production)."
+              rm -f "$TMP"
+              exit 1
+            fi
+            # -i : ignore les caractères hors alphabet base64 (collage UI / copie depuis navigateur).
+            if ! printf '%s' "$B64" | base64 -d -i > "$KEYFILE" 2>/dev/null; then
+              echo "::error::DEPLOY_SSH_KEY : une ligne base64 issue de : base64 -w0 ~/.ssh/github_deploy_cppeurope — ou clé PEM complète (BEGIN…END). Vérifie l’environment production."
               rm -f "$TMP"
               exit 1
             fi
@@ -76,3 +83,4 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "set -euo pipefail; cd $(printf '%q' "$DEPLOY_PATH"); git fetch origin; git reset --hard $(printf '%q' "origin/$GIT_REF"); bash ./deploy-with-tests.sh; docker compose down; docker compose up -d --build"
+
