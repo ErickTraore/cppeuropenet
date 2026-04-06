@@ -243,3 +243,26 @@ Projet propriétaire - PPA-CI © 2026
 ## 👥 Contact
 
 Association Les Premices (PPA-CI)
+
+---
+
+## Récap pour Cursor — VPS Hostinger / cppeurope
+
+À coller en début de session Cursor sur le VPS (ou pour aligner un assistant sur le contexte prod / CD).
+
+**Dépôt GitHub :** `ErickTraore/cppeuropenet` (frontend + user-backend + nginx + Docker dans le même repo).
+
+**Sur le VPS :**
+
+- Clone du site : **`/var/www/cppeurope`** (valeur type de `DEPLOY_PATH` pour le CD).
+- Stack : **`docker compose`** depuis ce dossier (`docker-compose.yml` à la racine du repo).
+
+**Point d’attention Docker :** le service `presse-generale-backend` monte le code et l’env depuis **`../contabo-cppeurope/presseGenerale-backend`** → sur le VPS il faut **`/var/www/contabo-cppeurope/presseGenerale-backend`** et un fichier **`.env.production`** (souvent absent du Git). Sans cela, **`docker compose up`** peut échouer (*env file … not found*).
+
+**CI (GitHub) :** push sur `main` / `master` / `develop` → workflow **CI** : build frontend + smoke Cypress `cypress/e2e/new/027_cppeuropeNet.cy.js`. Voir aussi `CI_CD_SETUP.md`.
+
+**CD (GitHub) :** workflow **Deploy** (`cd.yml`) — **manuel** (`workflow_dispatch`), confirmation **`DEPLOY`**, branche **`main`**. Sur le VPS : `git fetch` + `git reset --hard origin/<git_ref>` + **`./deploy-with-tests.sh`** (Jest + `npm run build` dans `frontend/`) + `docker compose down` + `docker compose up -d --build`. Secrets : `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_PATH`, `DEPLOY_SSH_KEY` (repo et/ou environnement **`production`** selon la config GitHub). Un échec fréquent : étape **`ssh-keyscan`** si `DEPLOY_HOST` est vide ou mal placé.
+
+**Déploiement manuel :** même séquence que le CD sans passer par GitHub ; `deploy-with-tests.sh` peut réussir alors que **`docker compose up`** échoue tant que Contabo + `.env.production` ne sont pas en place.
+
+**Objectifs typiques :** (1) secrets / `DEPLOY_HOST` pour que **Deploy** passe l’étape SSH ; (2) arborescence Contabo + `.env.production` pour que **`docker compose up`** réussisse.
