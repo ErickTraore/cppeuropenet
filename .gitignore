@@ -46,6 +46,8 @@ cypress/videos/
 frontend/cypress/screenshots/
 frontend/cypress/videos/
 frontend/cypress/tmp/
+# Cypress E2E "new" suite kept local (not versioned)
+frontend/cypress/e2e/new/
 
 # Fichiers de debug local
 frontend/tables.txt
