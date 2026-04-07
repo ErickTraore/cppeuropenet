@@ -16,8 +16,6 @@ services:
     restart: always
     networks:
       - app-network
-    ports:
-      - "7001:7001"
 
   # presse générale : API sur VPS Contabo uniquement (/opt/contabo-cppeurope/…). Pas de volume Hostinger.
 
