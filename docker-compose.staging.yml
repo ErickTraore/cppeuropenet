@@ -1,7 +1,7 @@
 # Staging sur le même VPS que la prod : stack isolée (projet Docker cppeurope-staging).
 # Base MariaDB = volume et identifiants dédiés (aucune donnée prod).
 #
-# Multi-VPS : Contabo (62.171.186.233) avec préfixe /cppeurope-staging — nginx/staging + CONTABO_PATH_PREFIX.
+# Multi-VPS : Contabo avec préfixe staging — nginx/staging + CONTABO_PATH_PREFIX (IP / chemins dans docker-compose.staging.env).
 # Déployer deploy/contabo-cppeurope-staging-prefix.conf.example sur le VPS Contabo avant de tester.
 #
 # Prérequis :
@@ -24,8 +24,8 @@ services:
     env_file:
       - ./user-backend/.env.staging
     environment:
-      NODE_ENV: production
-      DB_HOST: mariadb
+      NODE_ENV: ${NODE_ENV}
+      DB_HOST: ${DB_HOST}
     command: ["sh", "./wait-for-db.sh", "node", "server.prod.js"]
     depends_on:
       - mariadb
@@ -58,10 +58,10 @@ services:
     env_file:
       - ./user-backend/.env.staging
     environment:
-      NODE_ENV: production
-      PORT: "7020"
-      DATA_DIR: /data
-      MAX_UPLOAD_MB: "50"
+      NODE_ENV: ${COMPOSE_HOME_CONFIG_NODE_ENV}
+      PORT: ${COMPOSE_HOME_CONFIG_PORT}
+      DATA_DIR: ${COMPOSE_HOME_CONFIG_DATA_DIR}
+      MAX_UPLOAD_MB: ${COMPOSE_HOME_CONFIG_MAX_UPLOAD_MB}
     command: bash -c "npm install && node server.js"
     networks:
       - app-network
@@ -123,7 +123,7 @@ services:
     depends_on:
       - mariadb
     environment:
-      ADMINER_DEFAULT_SERVER: mariadb
+      ADMINER_DEFAULT_SERVER: ${COMPOSE_ADMINER_DB_HOST}
     networks:
       - app-network
 

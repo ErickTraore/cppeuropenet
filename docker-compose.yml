@@ -10,7 +10,7 @@ services:
     env_file:
       - ./user-backend/.env.production
     environment:
-      NODE_ENV: production
+      NODE_ENV: ${COMPOSE_USER_BACKEND_NODE_ENV}
       ALLOWED_ORIGINS: ${COMPOSE_USER_BACKEND_ALLOWED_ORIGINS}
     command: ["sh", "./wait-for-db.sh", "node", "server.prod.js"]
     depends_on:
@@ -47,7 +47,7 @@ services:
     env_file:
       - ./user-backend/.env.production
     environment:
-      NODE_ENV: production
+      NODE_ENV: ${COMPOSE_HOME_CONFIG_NODE_ENV}
       PORT: ${COMPOSE_HOME_CONFIG_PORT}
       DATA_DIR: ${COMPOSE_HOME_CONFIG_DATA_DIR}
       MAX_UPLOAD_MB: ${COMPOSE_HOME_CONFIG_MAX_UPLOAD_MB}
@@ -112,7 +112,7 @@ services:
     depends_on:
       - mariadb
     environment:
-      ADMINER_DEFAULT_SERVER: mariadb
+      ADMINER_DEFAULT_SERVER: ${COMPOSE_ADMINER_DB_HOST}
 
 volumes:
   hostinger-cppeurope-db-data:
