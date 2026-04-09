@@ -1,0 +1,34 @@
+# Squelette d’illustration pour Contabo : ne pas supposer que la stack réelle est identique.
+# À copier / adapter sous /opt/contabo-cppeurope/<backend>/ puis :
+#   docker compose --env-file ./docker-compose.staging.env -f docker-compose.staging.yml config
+#
+# Toute valeur de configuration doit passer par docker-compose.staging.env (ou équivalent).
+
+services:
+  example-backend:
+    image: ${COMPOSE_NODE_IMAGE}
+    working_dir: /usr/src/app
+    ports:
+      - "${STAGING_LOOPBACK_HOST_PORT}:${CONTAINER_APP_PORT}"
+    env_file:
+      - ./env.staging.example
+    environment:
+      NODE_ENV: ${COMPOSE_NODE_ENV}
+    command: ["sh", "-c", "${COMPOSE_APP_SHELL_COMMAND}"]
+    networks:
+      - contabo-staging
+
+  # Si MariaDB est dans le même fichier :
+  # mariadb:
+  #   image: ${COMPOSE_MARIADB_IMAGE}
+  #   environment:
+  #     MARIADB_DATABASE: ${MARIADB_DATABASE}
+  #     MARIADB_USER: ${MARIADB_USER}
+  #     MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+  #     MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+  #   ports:
+  #     - "${STAGING_MARIADB_HOST_PORT}:3306"
+
+networks:
+  contabo-staging:
+    driver: bridge
