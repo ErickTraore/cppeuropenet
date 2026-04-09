@@ -42,7 +42,7 @@ Verifier/retablir les variables et configs specifiques:
 Redemarrage cible (exemple media staging):
 
 ```bash
-./scripts/ssh-contabo.sh "cd /opt/contabo-cppeurope/mediaGle-backend && docker compose --env-file .env.compose-staging -f docker-compose.staging.yml -p media-staging-gle up -d --force-recreate mediaGle-backend"
+./scripts/ssh-contabo.sh "cd /opt/contabo-cppeurope/mediaGle-backend && docker compose --env-file docker-compose.staging.env --env-file .env.compose-staging -f docker-compose.staging.yml -p media-staging-gle up -d --force-recreate mediaGle-backend"
 ```
 
 ## 5) Communication
