@@ -2,6 +2,13 @@
 
 Site web de l'association HOSTINGER-CPPEUROPE.NET avec gestion de presse, authentification et profils utilisateurs.
 
+### Dépôts Git (à ne pas confondre)
+
+| Dépôt | Rôle |
+|-------|------|
+| **[cppeuropenet](https://github.com/ErickTraore/cppeuropenet.git)** | Site principal : frontend, `user-backend`, nginx, Docker Compose Hostinger (`/var/www/cppeurope` sur le VPS site). **C’est ce dépôt-ci.** |
+| **[contabo-cppeurope](https://github.com/ErickTraore/contabo-cppeurope.git)** | Backends du **2ᵉ VPS** (Contabo) : presse générale/locale, médias, profils médias, `home-config` côté Contabo, etc. (`/opt/contabo-cppeurope` sur le serveur Contabo). **Pas** le même code que le site Hostinger. |
+
 ## 🏗️ Architecture
 
 - **Frontend**: React 18 avec Redux
