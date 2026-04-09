@@ -1,6 +1,20 @@
-## File: hostinger-cppeurope/docker-compose.yml
-## Variables d’interpolation : docker-compose.production.env (voir docker-compose.production.env.example)
-## Démarrage : ./scripts/production-compose.sh up -d
+# Staging sur le même VPS que la prod : stack isolée (projet Docker cppeurope-staging).
+# Base MariaDB = volume et identifiants dédiés (aucune donnée prod).
+#
+# Multi-VPS : Contabo (62.171.186.233) avec préfixe /cppeurope-staging — nginx/staging + CONTABO_PATH_PREFIX.
+# Déployer deploy/contabo-cppeurope-staging-prefix.conf.example sur le VPS Contabo avant de tester.
+#
+# Prérequis :
+#   - user-backend/.env.staging.example → user-backend/.env.staging (secrets, DB, ALLOWED_ORIGINS, JWT)
+#   - docker-compose.staging.env.example → docker-compose.staging.env (ports, frontend, préfixe Contabo)
+#
+# Démarrage :
+#   ./scripts/staging-compose.sh up -d
+# ou :
+#   docker compose --env-file ./user-backend/.env.staging --env-file ./docker-compose.staging.env -f docker-compose.staging.yml -p cppeurope-staging up -d
+#
+# Accès typique : nginx http://<VPS>:9085  |  frontend direct :9082  |  MariaDB hôte :3315  |  Adminer :9083
+
 services:
   user-backend:
     image: node:20
@@ -8,10 +22,10 @@ services:
     volumes:
       - ./user-backend:/usr/src/app
     env_file:
-      - ./user-backend/.env.production
+      - ./user-backend/.env.staging
     environment:
       NODE_ENV: production
-      ALLOWED_ORIGINS: ${COMPOSE_USER_BACKEND_ALLOWED_ORIGINS}
+      DB_HOST: mariadb
     command: ["sh", "./wait-for-db.sh", "node", "server.prod.js"]
     depends_on:
       - mariadb
@@ -19,18 +33,16 @@ services:
     networks:
       - app-network
 
-  # presse générale : API sur VPS Contabo uniquement (/opt/contabo-cppeurope/…). Pas de volume Hostinger.
-
   mariadb:
     image: mariadb:11
     restart: always
     environment:
-      MARIADB_DATABASE: ${MARIADB_DATABASE}
-      MARIADB_USER: ${MARIADB_USER}
-      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_USER: ${DB_USERNAME}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
     volumes:
-      - hostinger-cppeurope-db-data:/var/lib/mysql
+      - cppeurope-staging-db-data:/var/lib/mysql
     ports:
       - "${COMPOSE_MARIADB_HOST_PORT}:3306"
     networks:
@@ -41,17 +53,15 @@ services:
     working_dir: /usr/src/app
     volumes:
       - ./home-config-backend:/usr/src/app
-      - home-config-data:/data
-      # better-sqlite3 doit être compilé dans l’image Node du conteneur, pas depuis l’hôte
-      - home-config-node-modules:/usr/src/app/node_modules
+      - home-config-staging-data:/data
+      - home-config-staging-node-modules:/usr/src/app/node_modules
     env_file:
-      - ./user-backend/.env.production
+      - ./user-backend/.env.staging
     environment:
       NODE_ENV: production
-      PORT: ${COMPOSE_HOME_CONFIG_PORT}
-      DATA_DIR: ${COMPOSE_HOME_CONFIG_DATA_DIR}
-      MAX_UPLOAD_MB: ${COMPOSE_HOME_CONFIG_MAX_UPLOAD_MB}
-      ALLOWED_ORIGINS: ${COMPOSE_HOME_CONFIG_ALLOWED_ORIGINS}
+      PORT: "7020"
+      DATA_DIR: /data
+      MAX_UPLOAD_MB: "50"
     command: bash -c "npm install && node server.js"
     networks:
       - app-network
@@ -65,7 +75,7 @@ services:
     ports:
       - "${COMPOSE_NGINX_HOST_PORT}:80"
     volumes:
-      - ./nginx:/etc/nginx/
+      - ./nginx/staging:/etc/nginx/
       - /etc/letsencrypt:/etc/letsencrypt:ro
     networks:
       - app-network
@@ -83,6 +93,7 @@ services:
       HOME_CONFIG_HOST: ${HOME_CONFIG_HOST}
       HOME_CONFIG_PORT: ${HOME_CONFIG_PORT}
       PROXY_UPSTREAM_HOST_HEADER: ${PROXY_UPSTREAM_HOST_HEADER}
+      CONTABO_PATH_PREFIX: ${CONTABO_PATH_PREFIX}
       MEDIA_STATIC_HOST: ${MEDIA_STATIC_HOST}
       MEDIA_STATIC_PORT: ${MEDIA_STATIC_PORT}
       MEDIA_HEALTH_PATH: ${MEDIA_HEALTH_PATH}
@@ -113,11 +124,13 @@ services:
       - mariadb
     environment:
       ADMINER_DEFAULT_SERVER: mariadb
+    networks:
+      - app-network
 
 volumes:
-  hostinger-cppeurope-db-data:
-  home-config-data:
-  home-config-node-modules:
+  cppeurope-staging-db-data:
+  home-config-staging-data:
+  home-config-staging-node-modules:
 
 networks:
   app-network:

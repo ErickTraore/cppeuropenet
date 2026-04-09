@@ -15,9 +15,9 @@ cd /var/www/cppeurope
 git fetch origin
 git reset --hard <commit_stable>
 ./deploy-with-tests.sh
-docker compose down
-docker compose up -d --build
-docker compose ps
+./scripts/production-compose.sh down
+./scripts/production-compose.sh up -d --build
+./scripts/production-compose.sh ps
 ```
 
 ## 3) Verification post-rollback

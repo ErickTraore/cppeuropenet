@@ -10,6 +10,16 @@ Ce document verrouille les variables critiques par environnement pour limiter le
 | Staging | `docker-compose.staging.yml` | `production` | `http://93.127.167.134:9085` (ou domaine staging) |
 | Production | `docker-compose.yml` | `production` | `https://cppeurope.net` |
 
+Interpolation `${…}` dans les YAML Compose (ports, CORS explicites, variables frontend) :
+
+| Environnement | Fichiers `--env-file` (voir `.example` versionnés) |
+|---|---|
+| Local dev | `docker-compose.development.env` |
+| Staging | `user-backend/.env.staging` puis `docker-compose.staging.env` (ordre : staging-compose.sh) |
+| Production | `docker-compose.production.env` |
+
+Raccourcis : `./scripts/dev-compose.sh`, `./scripts/staging-compose.sh`, `./scripts/production-compose.sh`.
+
 ## 2) User-backend (Hostinger)
 
 Variables critiques:

@@ -86,8 +86,8 @@ cd /var/www/cppeurope
 git fetch origin
 git reset --hard origin/main
 ./deploy-with-tests.sh
-docker compose down
-docker compose up -d --build
+./scripts/production-compose.sh down
+./scripts/production-compose.sh up -d --build
 ```
 
 > Attention: ne pas utiliser de force push sur `main`.
@@ -136,8 +136,8 @@ Exemple:
 cd /var/www/cppeurope
 git fetch origin
 git reset --hard <commit_stable>
-docker compose down
-docker compose up -d --build
+./scripts/production-compose.sh down
+./scripts/production-compose.sh up -d --build
 ```
 
 ## 8) Journal de release (obligatoire)

@@ -1,6 +1,7 @@
 # File: hostinger-cppeurope/docker-compose.dev.yml
+# Variables : docker-compose.development.env (voir docker-compose.development.env.example)
+# Démarrage : ./scripts/dev-compose.sh up -d
 
-version: '3.8'
 services:
   user-backend:
     build: ./user-backend
@@ -11,12 +12,10 @@ services:
       - ./user-backend/.env.development
     environment:
       NODE_ENV: development
-      ALLOWED_ORIGINS: http://localhost:3000,http://localhost:8082
-      # .env.development a DB_HOST=localhost ; dans Docker le service MariaDB s'appelle mariadb.
-      DB_HOST: mariadb
-      # Depuis le conteneur, localhost:7017 est faux ; host-gateway = machine hôte (où userMediaProfile écoute en 7017).
-      REACT_APP_MEDIA_API: http://host.docker.internal:7017/api/user-media-profile
-      MEDIA_API_CONTABO: http://host.docker.internal:7017/api/user-media-profile
+      ALLOWED_ORIGINS: ${COMPOSE_USER_BACKEND_ALLOWED_ORIGINS}
+      DB_HOST: ${COMPOSE_USER_BACKEND_DB_HOST}
+      REACT_APP_MEDIA_API: ${COMPOSE_REACT_APP_MEDIA_API}
+      MEDIA_API_CONTABO: ${COMPOSE_MEDIA_API_CONTABO}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     command: sh -c "npm install && node server.dev.js"
@@ -24,19 +23,18 @@ services:
       mariadb:
         condition: service_healthy
     ports:
-      - "7001:7001"
+      - "${COMPOSE_USER_BACKEND_HOST_PORT}:7001"
     networks:
       - user-db-net
 
   mariadb:
     image: mariadb:11
     restart: unless-stopped
-    # Aligné sur user-backend/.env.development (DB_USERNAME=c, DB_NAME=…).
     environment:
-      MARIADB_ROOT_PASSWORD: CppEurope@2025!
-      MARIADB_DATABASE: user_dev_cppeurope_v1
-      MARIADB_USER: c
-      MARIADB_PASSWORD: CppEurope@2025!
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
@@ -46,7 +44,7 @@ services:
     volumes:
       - user-db-data:/var/lib/mysql
     ports:
-      - "3307:3306"
+      - "${COMPOSE_MARIADB_HOST_PORT}:3306"
     networks:
       - user-db-net
 

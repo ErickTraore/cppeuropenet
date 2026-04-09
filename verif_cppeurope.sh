@@ -8,7 +8,7 @@
 # Vérification des services Docker Compose
 cd "$(dirname "$0")"
 echo "\n--- Statut des services Docker Compose ---"
-docker compose ps
+./scripts/production-compose.sh ps
 
 # Vérification de l'accessibilité HTTP du site et de l'API
 SITE_URL="https://hostinger-cppeurope.net"

@@ -82,7 +82,7 @@ jobs:
           GIT_REF: ${{ inputs.git_ref }}
         run: |
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            "set -euo pipefail; cd $(printf '%q' "$DEPLOY_PATH"); git fetch origin; git reset --hard $(printf '%q' "origin/$GIT_REF"); bash ./deploy-with-tests.sh; docker compose down; docker compose up -d --build"
+            "set -euo pipefail; cd $(printf '%q' "$DEPLOY_PATH"); git fetch origin; git reset --hard $(printf '%q' "origin/$GIT_REF"); bash ./deploy-with-tests.sh; ./scripts/production-compose.sh down; ./scripts/production-compose.sh up -d --build"
 
   prod-smoke:
     name: Post-deploy smoke (prod)

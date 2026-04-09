@@ -23,13 +23,13 @@ Depuis `/var/www/cppeurope`:
 
 ```bash
 # Etat stack prod hostinger
-docker compose ps
+./scripts/production-compose.sh ps
 
 # Logs principaux prod hostinger
-docker compose logs --tail=120 nginx
-docker compose logs --tail=120 user-backend
-docker compose logs --tail=120 frontend
-docker compose logs --tail=120 home-config
+./scripts/production-compose.sh logs --tail=120 nginx
+./scripts/production-compose.sh logs --tail=120 user-backend
+./scripts/production-compose.sh logs --tail=120 frontend
+./scripts/production-compose.sh logs --tail=120 home-config
 ```
 
 Staging:

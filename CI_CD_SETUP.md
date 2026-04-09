@@ -74,7 +74,8 @@ Test manuel utile (sur le VPS) :
 cd /var/www/hostinger-cppeurope   # ou TON chemin
 git status
 bash ./deploy-with-tests.sh
-docker compose up -d --build
+cp -n docker-compose.production.env.example docker-compose.production.env   # une fois ; puis éditer si besoin
+./scripts/production-compose.sh up -d --build
 ```
 
 Si ça marche à la main, le même enchaînement pourra être lancé par GitHub Actions.
@@ -135,7 +136,7 @@ Si tu mets des **Environment secrets** pour `production`, ils **remplacent** les
 Ensuite, ouvre le run : tu dois voir les étapes SSH puis la fin en vert si tout va bien.
 
 **Ce que fait le serveur dans l’ordre** :  
-`git fetch` → `git reset --hard origin/<git_ref>` → `./deploy-with-tests.sh` (Jest + build frontend) → `docker compose down` → `docker compose up -d --build`.
+`git fetch` → `git reset --hard origin/<git_ref>` → `./deploy-with-tests.sh` (Jest + build frontend) → `./scripts/production-compose.sh down` → `./scripts/production-compose.sh up -d --build` (nécessite `docker-compose.production.env` à la racine du clone).
 
 ---
 
@@ -148,7 +149,7 @@ Ensuite, ouvre le run : tu dois voir les étapes SSH puis la fin en vert si tout
 | Deploy rouge au moment du SSH | `DEPLOY_HOST`, `DEPLOY_USER`, ou clé / `authorized_keys` incorrects. |
 | Échec sur `git reset` | Branche inexistante sur GitHub : vérifie `git_ref` et que tu as bien `git push` la branche. |
 | Échec sur `deploy-with-tests.sh` | Connecte-toi au VPS, va dans `DEPLOY_PATH`, lance `bash ./deploy-with-tests.sh` et lis l’erreur (souvent build ou Jest). |
-| Échec sur `docker compose` | Même chose en SSH : `docker compose` à la main depuis `DEPLOY_PATH`. |
+| Échec sur `docker compose` | Vérifier `docker-compose.production.env` (copie depuis `.example`). En SSH : `./scripts/production-compose.sh` depuis `DEPLOY_PATH`. |
 
 ---
 

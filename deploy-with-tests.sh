@@ -22,4 +22,4 @@ echo "— Build production React"
 npm run build
 
 echo ""
-echo "OK — build dans frontend/build ; enchaîner avec docker compose up."
+echo "OK — build dans frontend/build ; enchaîner avec ./scripts/production-compose.sh up -d --build (docker-compose.production.env requis)."

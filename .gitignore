@@ -13,6 +13,10 @@ frontend/build/
 # Environment variables
 .env
 **/.env
+user-backend/.env.staging
+docker-compose.production.env
+docker-compose.staging.env
+docker-compose.development.env
 **/.env.local
 **/.env.development.local
 **/.env.test.local
