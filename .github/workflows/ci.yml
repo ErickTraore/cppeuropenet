@@ -66,19 +66,8 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Start dev server (CRA)
-        run: |
-          npm start &
-          npx wait-on http://localhost:3000
-
-      - name: Run smoke spec
+      - name: Run CI smoke gate (script)
         env:
           BROWSERSLIST_IGNORE_OLD_DATA: "1"
         run: |
-          env -u ELECTRON_RUN_AS_NODE npx cypress run \
-            --config-file cypress.config.cjs \
-            --config baseUrl=http://localhost:3000 \
-            --spec "cypress/e2e/new/027_cppeuropeNet.cy.js"
+          ../scripts/release-check.sh ci-smoke

@@ -12,6 +12,25 @@ Site web de l'association HOSTINGER-CPPEUROPE.NET avec gestion de presse, authen
 - **Serveur web**: Nginx (reverse proxy)
 - **Déploiement**: Docker Compose
 
+### Multi-VPS (Hostinger + Contabo)
+
+L’application est **répartie sur au moins deux VPS** : le serveur « site » (souvent Hostinger, DNS `cppeurope.net`) et un **deuxième VPS Contabo** qui héberge presse générale/locale, APIs médias, profils médias et stockage fichiers. Le nginx du premier **proxy**e vers l’IP Contabo (`62.171.186.233`) pour ces chemins (voir `nginx/conf.d/cppeurope.conf`).
+
+**Accès SSH Contabo (opérations)** — clés privées **hors dépôt**.
+
+| | |
+|--|--|
+| IP | `62.171.186.233` |
+| Utilisateur | `root` |
+| Clé typique | `~/.ssh/id_ed25519` (surcharge possible via `CONTABO_SSH_KEY`) |
+| Hostname | `vmi3028091` |
+
+Raccourci : `./scripts/ssh-contabo.sh` (voir le script pour les variables d’environnement).
+
+**Staging** (`docker-compose.staging.yml`) : MariaDB **séparée** sur le VPS principal. Les appels vers Contabo utilisent le **préfixe de chemin** `/cppeurope-staging` (nginx `nginx/staging/`, variable `CONTABO_PATH_PREFIX` côté `server.prod.js`, URLs dans `user-backend/.env.staging`).
+
+**Contabo (2ᵉ VPS)** : toutes les APIs cppeurope ont des **backends staging** dédiés (ports loopback **17004–17007**, **17016**) et nginx route `/cppeurope-staging/…` vers eux — voir `deploy/CONTABO-VPS-STAGING.md`.
+
 ## 🚀 Démarrage rapide
 
 ```bash
@@ -104,6 +123,44 @@ hostinger-cppeurope/
 - Docker & Docker Compose
 - Nginx
 - Scripts de démarrage avec wait-for-db
+
+## ✅ Release Gates (officiel)
+
+Le flux standard est:
+
+1. local
+2. staging
+3. production smoke
+
+Script unique:
+
+```bash
+./scripts/release-check.sh [local|staging|prod-smoke|ci-smoke|all]
+```
+
+Exemples:
+
+```bash
+# Gate local (build + smoke auth)
+./scripts/release-check.sh local
+
+# Gate staging (suite E2E complete)
+./scripts/release-check.sh staging
+
+# Gate smoke production (domaine public autorise)
+./scripts/release-check.sh prod-smoke
+
+# Pipeline complet
+./scripts/release-check.sh all
+```
+
+Documentation associee:
+
+- `deploy/RELEASE_RUNBOOK.md`
+- `deploy/GO_NO_GO.md`
+- `deploy/ENVIRONMENT_MATRIX.md`
+- `deploy/INCIDENT_RUNBOOK.md`
+- `deploy/ROLLBACK.md`
 
 ## 📝 Migrations de base de données
 
