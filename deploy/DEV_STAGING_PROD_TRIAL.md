@@ -1,6 +1,10 @@
-# Essais pratiques : développement → production
+# Essais pratiques : développement → **staging** → production
 
-Checklist courte pour **chaque essai** : une modification part du dev et se valide jusqu’à la prod. Le détail release (gates, journal) reste dans `deploy/RELEASE_RUNBOOK.md`.
+**Ordre obligatoire** : on ne passe **pas** directement du développement à la production. Le **staging** est l’étape intermédiaire (validation avant prod).
+
+Le titre « jusqu’à la prod » signifie seulement la **chaîne complète** de bout en bout, pas un raccourci qui évite le staging.
+
+Checklist courte pour **chaque essai** : modifier en dev → valider en **staging** → déployer en **prod**. Le détail release (gates, journal) reste dans `deploy/RELEASE_RUNBOOK.md`.
 
 ## 0) Prérequis
 

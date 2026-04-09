@@ -10,7 +10,7 @@ Ce runbook standardise le flux:
 Objectif: rendre les releases repetables, auditablees, et rollbackables.
 
 Reference configuration:
-- `deploy/DEV_TO_PROD_TRIAL.md` (checklist courte essai dev → prod)
+- `deploy/DEV_STAGING_PROD_TRIAL.md` (checklist essai dev → staging → prod)
 - `deploy/ENVIRONMENT_MATRIX.md` (variables critiques et anti-drift)
 - `deploy/INCIDENT_RUNBOOK.md` (diagnostic incident)
 - `deploy/ROLLBACK.md` (rollback operationnel)
