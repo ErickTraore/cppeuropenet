@@ -1,0 +1,34 @@
+# Interpolation : docker compose --env-file docker-compose.staging.env --env-file .env.compose-staging -f docker-compose.staging.yml -p media-staging-gle
+services:
+  mediaGle-backend:
+    image: ${COMPOSE_NODE_IMAGE}
+    working_dir: /usr/src/app
+    command: ["sh", "-c", "${COMPOSE_APP_SHELL_COMMAND}"]
+    env_file: .env.staging
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PRESSE_BASE_URL: ${PRESSE_BASE_URL}
+    ports:
+      - "${STAGING_BIND_HOST}:${STAGING_HOST_PORT}:${CONTAINER_APP_PORT}"
+    volumes:
+      - ./:/usr/src/app
+      - ./uploads-staging:/usr/src/app/uploads
+    restart: unless-stopped
+    depends_on:
+      - mariadb
+
+  mariadb:
+    image: ${COMPOSE_MARIADB_IMAGE}
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${STAGING_MARIADB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${STAGING_MARIADB_ROOT_PASSWORD}
+    volumes:
+      - media-staging-gle-db-data:/var/lib/mysql
+
+volumes:
+  media-staging-gle-db-data:

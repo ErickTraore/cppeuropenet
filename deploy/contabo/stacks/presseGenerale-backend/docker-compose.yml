@@ -1,0 +1,16 @@
+# Interpolation : docker compose --env-file docker-compose.production.env -f docker-compose.yml
+services:
+  presse-generale-backend:
+    image: ${COMPOSE_NODE_IMAGE}
+    working_dir: /usr/src/app
+    command: ["sh", "-c", "${COMPOSE_APP_SHELL_COMMAND}"]
+    ports:
+      - "${PROD_BIND_HOST}:${PROD_HOST_PORT}:${CONTAINER_PORT}"
+    env_file: .env.production
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: ${COMPOSE_APP_PORT}
+      ALLOWED_ORIGINS: ${COMPOSE_ALLOWED_ORIGINS}
+    volumes:
+      - ./:/usr/src/app
+    restart: unless-stopped

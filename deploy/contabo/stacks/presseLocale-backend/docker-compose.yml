@@ -1,0 +1,45 @@
+# Interpolation : docker compose --env-file docker-compose.production.env -f docker-compose.yml
+services:
+  presseLocale-backend:
+    image: ${COMPOSE_NODE_IMAGE}
+    working_dir: /usr/src/app
+    command: ["sh", "-c", "${COMPOSE_APP_SHELL_COMMAND}"]
+    ports:
+      - "${PROD_BIND_HOST}:${PROD_HOST_PORT}:${CONTAINER_APP_PORT}"
+    env_file: .env.production
+    environment:
+      NODE_ENV: ${NODE_ENV}
+    volumes:
+      - ./:/usr/src/app
+    restart: unless-stopped
+    depends_on:
+      - mariadb
+    networks:
+      - db-admin-net
+
+  mariadb:
+    image: ${COMPOSE_MARIADB_IMAGE}
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+    volumes:
+      - presseLocale-db-data:/var/lib/mysql
+    ports:
+      - "${MARIADB_HOST_PORT}:3306"
+    networks:
+      db-admin-net:
+        aliases:
+          - presselocale-db
+
+volumes:
+  presseLocale-db-data:
+    external: true
+    name: ${COMPOSE_VOLUME_PRESSE_LOCALE_DB}
+
+networks:
+  db-admin-net:
+    external: true
+    name: ${COMPOSE_DB_ADMIN_NET_NAME}

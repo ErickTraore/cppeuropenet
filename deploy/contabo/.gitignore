@@ -1,0 +1,3 @@
+# Fichiers d’interpolation avec secrets (copier depuis *.example sur le VPS)
+**/docker-compose.production.env
+**/docker-compose.staging.env

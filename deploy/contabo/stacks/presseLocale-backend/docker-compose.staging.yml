@@ -1,0 +1,39 @@
+# Interpolation : docker compose --env-file docker-compose.staging.env --env-file .env.compose-staging-pl -f docker-compose.staging.yml -p staging-presse-locale
+services:
+  presseLocale-backend:
+    image: ${COMPOSE_NODE_IMAGE}
+    working_dir: /usr/src/app
+    command: ["sh", "-c", "${COMPOSE_APP_SHELL_COMMAND}"]
+    ports:
+      - "${STAGING_BIND_HOST}:${STAGING_HOST_PORT}:${CONTAINER_APP_PORT}"
+    env_file: .env.staging
+    volumes:
+      - ./:/usr/src/app
+    restart: unless-stopped
+    depends_on:
+      - mariadb
+    networks:
+      - staging-pl-net
+
+  mariadb:
+    image: ${COMPOSE_MARIADB_IMAGE}
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${STAGING_MARIADB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${STAGING_MARIADB_ROOT_PASSWORD}
+    volumes:
+      - presse-locale-staging-db:/var/lib/mysql
+    networks:
+      staging-pl-net:
+        aliases:
+          - presselocale-db
+          - mariadb
+
+volumes:
+  presse-locale-staging-db:
+
+networks:
+  staging-pl-net:
+    driver: bridge

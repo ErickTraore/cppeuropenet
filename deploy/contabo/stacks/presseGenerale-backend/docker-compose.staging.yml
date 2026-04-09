@@ -1,0 +1,15 @@
+# Interpolation : docker compose --env-file docker-compose.staging.env -f docker-compose.staging.yml -p staging-presse-generale
+services:
+  presse-generale-backend:
+    image: ${COMPOSE_NODE_IMAGE}
+    working_dir: /usr/src/app
+    command: ["sh", "-c", "${COMPOSE_APP_SHELL_COMMAND}"]
+    ports:
+      - "${STAGING_BIND_HOST}:${STAGING_HOST_PORT}:${CONTAINER_PORT}"
+    env_file: .env.staging
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: ${COMPOSE_APP_PORT}
+    volumes:
+      - ./:/usr/src/app
+    restart: unless-stopped

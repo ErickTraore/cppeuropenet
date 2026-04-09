@@ -35,6 +35,10 @@ Ordre : d’abord l’env **Compose** (ports, interpolation), puis **`.env.stagi
 3. Lister ces noms dans `docker-compose.staging.env.example`, puis créer **`docker-compose.staging.env`** sur le serveur (non commité).
 4. Vérifier : `docker compose --env-file ./docker-compose.staging.env -f docker-compose.staging.yml config`.
 
+## Fichiers réels par backend (Contabo)
+
+Les stacks **production et staging** sous `/opt/contabo-cppeurope/*` utilisent des `docker-compose*.yml` interpolés par `docker-compose.production.env` / `docker-compose.staging.env` (voir **`stacks/`** dans ce dépôt — à synchroniser sur le VPS).
+
 ## Exemples dans ce dépôt
 
 - `examples/docker-compose.staging.skeleton.yml` — squelette minimal (pattern uniquement).

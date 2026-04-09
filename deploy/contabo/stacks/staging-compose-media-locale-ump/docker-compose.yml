@@ -1,0 +1,56 @@
+# Interpolation : docker compose --env-file docker-compose.staging.env --env-file .env.compose -f docker-compose.yml -p staging-ml-ump
+services:
+  mariadb:
+    image: ${COMPOSE_MARIADB_IMAGE}
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${STAGING_MARIADB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${STAGING_MARIADB_ROOT_PASSWORD}
+    volumes:
+      - media-locale-staging-shared-db:/var/lib/mysql
+    networks:
+      staging-net:
+        aliases:
+          - medialocale-db
+          - mariadb
+
+  mediaLocale-backend:
+    image: ${COMPOSE_NODE_IMAGE}
+    working_dir: /usr/src/app
+    command: ["sh", "-c", "${COMPOSE_APP_SHELL_COMMAND}"]
+    env_file: .env.staging.mediaLocale
+    ports:
+      - "${STAGING_BIND_HOST}:${STAGING_MEDIA_LOCALE_HOST_PORT}:${CONTAINER_MEDIA_LOCALE_PORT}"
+    volumes:
+      - ${COMPOSE_MEDIA_LOCALE_PATH}:/usr/src/app
+      - ${COMPOSE_MEDIA_LOCALE_UPLOADS_PATH}:/usr/src/app/uploads
+    restart: unless-stopped
+    depends_on:
+      - mariadb
+    networks:
+      - staging-net
+
+  userMediaProfile-backend:
+    image: ${COMPOSE_NODE_IMAGE}
+    working_dir: /usr/src/app
+    command: ["sh", "-c", "${COMPOSE_APP_SHELL_COMMAND}"]
+    env_file: .env.staging.userMediaProfile
+    ports:
+      - "${STAGING_BIND_HOST}:${STAGING_UMP_HOST_PORT}:${CONTAINER_UMP_PORT}"
+    volumes:
+      - ${COMPOSE_USER_MEDIA_PROFILE_PATH}:/usr/src/app
+      - ${COMPOSE_USER_MEDIA_PROFILE_UPLOADS_PATH}:/usr/src/app/uploads
+    restart: unless-stopped
+    depends_on:
+      - mariadb
+    networks:
+      - staging-net
+
+volumes:
+  media-locale-staging-shared-db:
+
+networks:
+  staging-net:
+    driver: bridge

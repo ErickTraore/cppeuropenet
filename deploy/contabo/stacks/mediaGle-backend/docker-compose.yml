@@ -1,0 +1,40 @@
+# Interpolation : docker compose --env-file docker-compose.production.env -f docker-compose.yml
+services:
+  mediaGle-backend:
+    image: ${COMPOSE_NODE_IMAGE}
+    working_dir: /usr/src/app
+    command: ["sh", "-c", "${COMPOSE_APP_SHELL_COMMAND}"]
+    env_file: .env.production
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PRESSE_BASE_URL: ${PRESSE_BASE_URL}
+    ports:
+      - "${PROD_BIND_HOST}:${PROD_HOST_PORT}:${CONTAINER_APP_PORT}"
+    volumes:
+      - ./:/usr/src/app
+      - ./uploads:/usr/src/app/uploads
+    restart: unless-stopped
+    depends_on:
+      - mariadb
+
+  mariadb:
+    image: ${COMPOSE_MARIADB_IMAGE}
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+    volumes:
+      - media-db-data:/var/lib/mysql
+    networks:
+      default:
+        aliases:
+          - mariadb
+
+volumes:
+  media-db-data:
+    external: true
+    name: ${COMPOSE_VOLUME_MEDIA_DB}
