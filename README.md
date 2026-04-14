@@ -45,11 +45,7 @@ Raccourci : `./scripts/ssh-contabo.sh` (voir le script pour les variables d’en
 git clone <url-du-repo>
 cd hostinger-cppeurope
 
-# Créer les fichiers .env nécessaires
-# frontend/.env
-REACT_APP_USER_API=http://localhost:7001/api
-REACT_APP_MEDIA_API=http://localhost:7002/api
-REACT_APP_BASE_URL=http://localhost:7002
+# Les fichiers `.env` / `.env.*` sont versionnés (staging) : après clone, les ajuster si besoin.
 
 # Lancer avec Docker
 docker compose up -d
@@ -321,12 +317,12 @@ Association Les Premices (PPA-CI)
 - Clone du site : **`/var/www/cppeurope`** (valeur type de `DEPLOY_PATH` pour le CD).
 - Stack : **`docker compose`** depuis ce dossier (`docker-compose.yml` à la racine du repo).
 
-**Point d’attention Docker :** le service `presse-generale-backend` monte le code et l’env depuis **`../contabo-cppeurope/presseGenerale-backend`** → sur le VPS il faut **`/var/www/contabo-cppeurope/presseGenerale-backend`** et un fichier **`.env.production`** (souvent absent du Git). Sans cela, **`docker compose up`** peut échouer (*env file … not found*).
+**Point d’attention Docker :** le service `presse-generale-backend` monte le code et l’env depuis **`../contabo-cppeurope/presseGenerale-backend`** → sur le VPS il faut **`/var/www/contabo-cppeurope/presseGenerale-backend`** et un **`.env.production`** présent dans le clone (versionné avec le dépôt `contabo-cppeurope`). Sans ce fichier au bon chemin, **`docker compose up`** peut échouer (*env file … not found*).
 
 **CI (GitHub) :** push sur `main` / `master` / `develop` → workflow **CI** : build frontend + smoke Cypress `cypress/e2e/new/027_cppeuropeNet.cy.js`. Voir aussi `CI_CD_SETUP.md`.
 
 **CD (GitHub) :** workflow **Deploy** (`cd.yml`) — **manuel** (`workflow_dispatch`), confirmation **`DEPLOY`**, branche **`main`**. Sur le VPS : `git fetch` + `git reset --hard origin/<git_ref>` + **`./deploy-with-tests.sh`** (Jest + `npm run build` dans `frontend/`) + `docker compose down` + `docker compose up -d --build`. Secrets : `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_PATH`, `DEPLOY_SSH_KEY` (repo et/ou environnement **`production`** selon la config GitHub). Un échec fréquent : étape **`ssh-keyscan`** si `DEPLOY_HOST` est vide ou mal placé.
 
-**Déploiement manuel :** même séquence que le CD sans passer par GitHub ; `deploy-with-tests.sh` peut réussir alors que **`docker compose up`** échoue tant que Contabo + `.env.production` ne sont pas en place.
+**Déploiement manuel :** même séquence que le CD sans passer par GitHub ; après `git clone` / `git pull`, vérifier que les **`.env.*` versionnés** dans `contabo-cppeurope/…` sont bien présents sur le disque du VPS avant **`docker compose up`**.
 
-**Objectifs typiques :** (1) secrets / `DEPLOY_HOST` pour que **Deploy** passe l’étape SSH ; (2) arborescence Contabo + `.env.production` pour que **`docker compose up`** réussisse.
+**Objectifs typiques :** (1) secrets GitHub (`DEPLOY_HOST`, etc.) pour que **Deploy** passe l’étape SSH ; (2) arborescence Contabo alignée avec le dépôt pour que **`docker compose up`** trouve les **fichiers d’environnement** attendus.
