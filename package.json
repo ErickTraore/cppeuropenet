@@ -1,4 +1,14 @@
 {
+  "private": true,
+  "scripts": {
+    "e2e:cold": "npm --prefix frontend run e2e:cold",
+    "e2e:docker-up": "npm --prefix frontend run e2e:docker-up",
+    "e2e:from-boot": "npm --prefix frontend run e2e:from-boot",
+    "e2e:boot-checklist": "npm --prefix frontend run e2e:boot-checklist",
+    "e2e:precheck": "npm --prefix frontend run e2e:precheck",
+    "cypress:run:new": "npm --prefix frontend run cypress:run:new",
+    "e2e:ensure-build": "npm --prefix frontend run e2e:ensure-build"
+  },
   "dependencies": {
     "mariadb": "^3.5.2",
     "mysql2": "^3.20.0"

@@ -16,7 +16,7 @@ permissions:
 
 env:
   CI: "true"
-  # Aligné sur l’app derrière nginx / server.prod (même origine :8082 pour les /api/* proxifiés).
+  # Aligné sur docker-compose (même origine :8082 pour les /api/* proxifiés).
   REACT_APP_USER_API: http://localhost:8082/api/users
   REACT_APP_PRESSE_GENERALE_API: http://localhost:7012/api
   REACT_APP_PRESSE_LOCALE_API: http://localhost:8082/api/presse-locale

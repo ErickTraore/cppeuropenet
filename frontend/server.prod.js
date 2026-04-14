@@ -21,10 +21,14 @@ const PRESSE_LOCALE_MSG_PORT = parseInt(process.env.PRESSE_LOCALE_MSG_PORT || '7
 const HOME_CONFIG_HOST = process.env.HOME_CONFIG_HOST || '127.0.0.1';
 const HOME_CONFIG_PORT = parseInt(process.env.HOME_CONFIG_PORT || '7020', 10);
 
+/** User-backend (auth / messages) : même origine que le front → pas de CORS (Cypress Electron inclus). */
+const USER_BACKEND_HOST = process.env.USER_BACKEND_HOST || '127.0.0.1';
+const USER_BACKEND_PORT = parseInt(process.env.USER_BACKEND_PORT || '7001', 10);
+
 /** Proxy HTTP : chemin exact (query incluse si présente dans targetPath). */
 function proxyRawPath(req, res, hostname, port, targetPath, proxyOpts = {}) {
   const headers = { ...req.headers, host: `${hostname}:${port}` };
-  // Le navigateur envoie Origin (ex. :8082) ; certains backends en prod refusent CORS si ce port n’est pas listé.
+  // Le navigateur envoie Origin (ex. :8082 en local Docker) ; certains backends en prod refusent CORS si ce port n’est pas listé.
   // Requête serveur-à-serveur : sans Origin, le backend accepte (cf. presseLocale app.js).
   if (proxyOpts.omitOrigin) {
     delete headers.origin;
@@ -158,6 +162,12 @@ app.get('/api/__health/user-media-profile', (req, res) => {
   p.end();
 });
 
+app.use((req, res, next) => {
+  const o = req.originalUrl || '';
+  if (!o.startsWith('/api/users')) return next();
+  proxyRawPath(req, res, USER_BACKEND_HOST, USER_BACKEND_PORT, o, { omitOrigin: true });
+});
+
 // JSON + upload user-media-profile : même origine que le front (évite CORS navigateur / E2E).
 app.use((req, res, next) => {
   const o = req.originalUrl || '';
@@ -203,4 +213,5 @@ app.listen(PORT, () => {
   console.log(`  → Proxy /api/user-media-profile → http://${MEDIA_HOST}:${MEDIA_PORT}`);
   console.log(`  → Proxy /api/presse-locale → http://${PRESSE_LOCALE_MSG_HOST}:${PRESSE_LOCALE_MSG_PORT}`);
   console.log(`  → Proxy /api/home-config → http://${HOME_CONFIG_HOST}:${HOME_CONFIG_PORT}`);
+  console.log(`  → Proxy /api/users → http://${USER_BACKEND_HOST}:${USER_BACKEND_PORT}`);
 });

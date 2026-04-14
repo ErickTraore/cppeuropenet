@@ -55,11 +55,15 @@ Cypress.Commands.add('expectAuthenticatedShell', () => {
   });
 });
 
+const {
+  usersApi: E2E_USERS_API,
+  presseGenMessages: API_PRESSE_GEN,
+  presseLocMessages: API_PRESSE_LOC_BASE,
+  presseLocMessagesList: API_PRESSE_LOC_LIST,
+} = require('./e2eApiUrls');
+
 const E2E_ADMIN = { email: 'admin2026@cppeurope.net', password: 'admin2026!' };
-const USERS_LOGIN = 'http://localhost:7001/api/users/login';
-const API_PRESSE_GEN = 'http://localhost:7012/api/messages/';
-const API_PRESSE_LOC_BASE = 'http://localhost:7005/api/messages/';
-const API_PRESSE_LOC_LIST = `${API_PRESSE_LOC_BASE}?categ=presse-locale&siteKey=cppEurope`;
+const USERS_LOGIN = `${E2E_USERS_API}/login`;
 
 /** Déplie la carte Consulter (titre + contenu) pour un article dont le titre est visible. */
 Cypress.Commands.add('expandPresseConsultCardByTitle', (titre, options = {}) => {
@@ -141,7 +145,7 @@ Cypress.Commands.add('apiCreatePresseGeneraleMessage', (token, titre, contenu, f
   return cy
     .request({
       method: 'POST',
-      url: 'http://localhost:7012/api/messages/new/',
+      url: `${API_PRESSE_GEN}new/`,
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -172,9 +176,9 @@ Cypress.Commands.add('apiUploadPresseGeneraleVideo', (token, messageId) => {
     token,
     messageId,
     fieldName: 'video',
-    fileName: 'video-1.mp4',
+    fileName: 'video-e2e-valid-small.mp4',
     mimeType: 'video/mp4',
-    fixtureRelativePath: 'cypress/fixtures/videos/video-1.mp4',
+    fixtureRelativePath: 'cypress/fixtures/videos/video-e2e-valid-small.mp4',
     port: 7004,
     apiPath: '/api/media/uploadVideo/',
   });
@@ -184,7 +188,7 @@ Cypress.Commands.add('apiCreatePresseLocaleMessage', (token, titre, contenu) => 
   return cy
     .request({
       method: 'POST',
-      url: 'http://localhost:7005/api/messages/new/',
+      url: `${API_PRESSE_LOC_BASE}new/`,
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -215,9 +219,9 @@ Cypress.Commands.add('apiUploadPresseLocaleVideo', (token, messageId) => {
     token,
     messageId,
     fieldName: 'video',
-    fileName: 'video-1.mp4',
+    fileName: 'video-e2e-valid-small.mp4',
     mimeType: 'video/mp4',
-    fixtureRelativePath: 'cypress/fixtures/videos/video-1.mp4',
+    fixtureRelativePath: 'cypress/fixtures/videos/video-e2e-valid-small.mp4',
     port: 7008,
     apiPath: '/api/media-locale/uploadVideo/',
   });

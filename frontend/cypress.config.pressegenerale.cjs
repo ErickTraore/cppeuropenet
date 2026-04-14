@@ -5,7 +5,7 @@ module.exports = defineConfig({
   e2e: {
     baseUrl: 'http://localhost:7006',
     supportFile: 'cypress/support/e2e.js',
-    specPattern: 'cypress/e2e/03B_presseGeneraleCreateOption1.cy.js',
+    specPattern: 'cypress/e2e/new/010_presseGeneraleCreateOption1.cy.js',
     viewportWidth: 1280,
     viewportHeight: 720,
     browserConsoleLogOptions: {

@@ -31,7 +31,7 @@ const FormPresseLocaleVideo = () => {
   const uploadVideo = async (file, messageId) => {
     const formData = new FormData();
     formData.append('video', file);
-    formData.append('messageId', messageId);
+    formData.append('messageId', String(messageId));
 
     const response = await fetch(`${getPresseLocaleMediaApiRoot()}/uploadVideo/`, {
       method: 'POST',

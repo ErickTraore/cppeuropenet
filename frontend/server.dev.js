@@ -21,6 +21,9 @@ const PRESSE_LOCALE_MSG_PORT = parseInt(process.env.PRESSE_LOCALE_MSG_PORT || '7
 const HOME_CONFIG_HOST = process.env.HOME_CONFIG_HOST || '127.0.0.1';
 const HOME_CONFIG_PORT = parseInt(process.env.HOME_CONFIG_PORT || '7020', 10);
 
+const USER_BACKEND_HOST = process.env.USER_BACKEND_HOST || '127.0.0.1';
+const USER_BACKEND_PORT = parseInt(process.env.USER_BACKEND_PORT || '7001', 10);
+
 function proxyRawPath(req, res, hostname, port, targetPath, proxyOpts = {}) {
   const headers = { ...req.headers, host: `${hostname}:${port}` };
   if (proxyOpts.omitOrigin) {
@@ -49,7 +52,7 @@ function proxyRawPath(req, res, hostname, port, targetPath, proxyOpts = {}) {
 
 /**
  * Les chemins /mediaprofile/* et /imagesprofile/* sont servis par userMediaProfile-backend (port 7017).
- * Le bundle React utilise des URLs same-origin (/mediaprofile/...) — sans proxy, le serveur 8082 renvoie 404
+ * Le bundle React utilise des URLs same-origin (/mediaprofile/...) — sans proxy, le serveur (ex. :8082) renvoie 404
  * et les images du profil ne s'affichent pas en local (nginx en prod fait déjà le routage).
  */
 function proxyToMedia(req, res, pathPrefix) {
@@ -163,6 +166,12 @@ app.get('/api/__health/user-media-profile', (req, res) => {
 
 app.use((req, res, next) => {
   const o = req.originalUrl || '';
+  if (!o.startsWith('/api/users')) return next();
+  proxyRawPath(req, res, USER_BACKEND_HOST, USER_BACKEND_PORT, o, { omitOrigin: true });
+});
+
+app.use((req, res, next) => {
+  const o = req.originalUrl || '';
   if (!o.startsWith('/api/user-media-profile')) return next();
   proxyRawPath(req, res, MEDIA_HOST, MEDIA_PORT, o, { omitOrigin: true });
 });
@@ -203,4 +212,5 @@ app.listen(PORT, () => {
   console.log(`  → Proxy /api/user-media-profile → http://${MEDIA_HOST}:${MEDIA_PORT}`);
   console.log(`  → Proxy /api/presse-locale → http://${PRESSE_LOCALE_MSG_HOST}:${PRESSE_LOCALE_MSG_PORT}`);
   console.log(`  → Proxy /api/home-config → http://${HOME_CONFIG_HOST}:${HOME_CONFIG_PORT}`);
+  console.log(`  → Proxy /api/users → http://${USER_BACKEND_HOST}:${USER_BACKEND_PORT}`);
 });
