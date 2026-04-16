@@ -14,6 +14,19 @@ const LOCAL_USER_PORT = parseInt(process.env.HOSTINGER_USER_BACKEND_PORT || '700
 const FRONTEND_PROD_PING = `http://127.0.0.1:${LOCAL_FRONT_PORT}/api/ping`;
 const HOME_CONFIG_BASELINE_FILE = path.join(__dirname, 'cypress', '.e2e-home-config-baseline.json');
 
+function detectE2EProfile(baseUrl) {
+  const forced = (process.env.CYPRESS_E2E_PROFILE || '').trim().toLowerCase();
+  if (forced === 'local' || forced === 'staging') {
+    return forced;
+  }
+  try {
+    const host = new URL(baseUrl || `http://127.0.0.1:${LOCAL_FRONT_PORT}`).hostname;
+    return host === '127.0.0.1' || host === 'localhost' ? 'local' : 'staging';
+  } catch {
+    return 'local';
+  }
+}
+
 /** JSON HTTP (Node) pour login + PUT home-config — teardown fiable hors navigateur. */
 function httpJsonRequest(urlStr, { method = 'GET', headers = {}, jsonBody = null } = {}) {
   return new Promise((resolve, reject) => {
@@ -104,6 +117,13 @@ module.exports = defineConfig({
       terminal: true,
     },
     setupNodeEvents(on, config) {
+      const e2eProfile = detectE2EProfile(config.baseUrl);
+      config.env = {
+        ...(config.env || {}),
+        E2E_PROFILE: e2eProfile,
+        E2E_INVENTORY_FILE:
+          e2eProfile === 'staging' ? 'services-inventory.staging.json' : 'services-inventory.json',
+      };
       on('task', {
         log(message) {
           console.log(message);
@@ -160,6 +180,8 @@ module.exports = defineConfig({
           const maxMs = parseInt(process.env.CYPRESS_E2E_GATE_MAX_MS || '180000', 10);
           const pollMs = parseInt(process.env.CYPRESS_E2E_GATE_POLL_MS || '2000', 10);
           await runInfrastructureGate({
+            profile: e2eProfile,
+            baseUrl: config.baseUrl,
             frontPort: LOCAL_FRONT_PORT,
             userPort: LOCAL_USER_PORT,
             maxWaitMs: maxMs,
@@ -188,17 +210,22 @@ module.exports = defineConfig({
           } catch (e) {
             throw new Error(`Baseline JSON invalide: ${e.message}`);
           }
-          const loginUrl = `http://127.0.0.1:${LOCAL_USER_PORT}/api/users/login`;
+          const normalizedBase = String(baseUrl || config.baseUrl || `http://127.0.0.1:${LOCAL_FRONT_PORT}`).replace(/\/$/, '');
+          const isStaging = e2eProfile === 'staging';
+          const loginUrl = isStaging
+            ? `${normalizedBase}/api/users/login`
+            : `http://127.0.0.1:${LOCAL_USER_PORT}/api/users/login`;
           const { body: loginBody } = await httpJsonRequest(loginUrl, {
             method: 'POST',
             jsonBody: { email: adminEmail, password: adminPassword },
           });
           const token = loginBody && loginBody.accessToken;
           if (!token) throw new Error('Login admin E2E sans accessToken');
-          // PUT direct sur home-config (7020) : évite tout souci de proxy / en-têtes ; JWT doit matcher JWT_SIGN_SECRET du backend home-config.
-          const homeConfigBase =
-            process.env.CYPRESS_HOME_CONFIG_ORIGIN || 'http://127.0.0.1:7020';
-          const putUrl = `${homeConfigBase.replace(/\/$/, '')}/api/home-config`;
+          const homeConfigBase = (() => {
+            if (isStaging) return normalizedBase;
+            return (process.env.CYPRESS_HOME_CONFIG_ORIGIN || 'http://127.0.0.1:7020').replace(/\/$/, '');
+          })();
+          const putUrl = isStaging ? `${homeConfigBase}/api/home-config` : `${homeConfigBase}/api/home-config`;
           await httpJsonRequest(putUrl, {
             method: 'PUT',
             headers: { Authorization: `Bearer ${token}` },
@@ -225,14 +252,22 @@ module.exports = defineConfig({
             fixtureRelativePath,
             port,
             apiPath,
+            absoluteUrl,
           } = opts;
           const root = path.resolve(__dirname);
           const abs = path.join(root, fixtureRelativePath);
           if (!fs.existsSync(abs)) {
             throw new Error(`Fixture introuvable: ${fixtureRelativePath}`);
           }
-          const pathOnly = apiPath.startsWith('/') ? apiPath : `/${apiPath}`;
-          const url = `http://127.0.0.1:${port}${pathOnly}`;
+          const url = (() => {
+            if (absoluteUrl) {
+              return String(absoluteUrl);
+            }
+            if (!port || !apiPath) {
+              throw new Error('presseMediaUpload: fournir absoluteUrl ou (port + apiPath).');
+            }
+            return `http://127.0.0.1:${port}${apiPath.startsWith('/') ? apiPath : `/${apiPath}`}`;
+          })();
           const formField = `${fieldName}=@${abs};filename=${fileName}${mimeType ? `;type=${mimeType}` : ''}`;
           const tmpOut = path.join(os.tmpdir(), `cypress-upload-${Date.now()}-${Math.random().toString(36).slice(2, 9)}.bin`);
           try {
