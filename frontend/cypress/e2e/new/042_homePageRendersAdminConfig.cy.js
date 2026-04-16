@@ -46,6 +46,7 @@ describe('Home config admin — fixtures cat. 1 à 3, enregistrer, trois images 
 
   it('admin : upload fixture sur les 3 catégories, enregistrer, Home affiche et sert les 3 images', () => {
     const base = Cypress.config('baseUrl');
+    const uploadedUrls = [];
 
     cy.loginByUi(adminEmail, adminPassword);
     cy.dismissSessionModalIfPresent();
@@ -59,12 +60,17 @@ describe('Home config admin — fixtures cat. 1 à 3, enregistrer, trois images 
       cy.get(`#home-cat-${i}-label`).should('be.visible').invoke('val').should('not.be.empty');
     });
 
+    cy.intercept('POST', '**/api/home-config/upload').as('homeConfigUpload');
+
     [0, 1, 2].forEach((i) => {
       cy.get('.admin-home-config__cat').eq(i).find('input[type=file]').selectFile(fixtureImage, { force: true });
-      cy.get(`#home-cat-${i}-url`, { timeout: 20000 })
-        .should('be.visible')
-        .invoke('val')
-        .should('match', /^\/api\/home-config\/media\/.+/);
+      cy.wait('@homeConfigUpload', { timeout: 60000 }).then((inter) => {
+        expect(inter.response?.statusCode, `upload catégorie ${i + 1} doit réussir`).to.be.oneOf([200, 201]);
+        const url = inter.response?.body?.url;
+        expect(url, `upload catégorie ${i + 1} retourne body.url`).to.match(/^\/api\/home-config\/media\/.+/);
+        uploadedUrls[i] = url;
+        cy.get(`#home-cat-${i}-url`, { timeout: 20000 }).should('be.visible').should('have.value', url);
+      });
     });
 
     cy.get('form').contains('button[type=submit]', 'Enregistrer').click();
@@ -79,6 +85,7 @@ describe('Home config admin — fixtures cat. 1 à 3, enregistrer, trois images 
       expect(cats, 'categories').to.have.length(3);
       cats.forEach((cat, i) => {
         expect(cat.imageUrl, `cat ${i + 1} imageUrl`).to.match(/^\/api\/home-config\/media\/.+/);
+        expect(cat.imageUrl, `cat ${i + 1} doit utiliser l'URL uploadée pendant ce test`).to.eq(uploadedUrls[i]);
       });
       const fileNames = cats.map((c) => c.imageUrl.split('/').pop());
 
