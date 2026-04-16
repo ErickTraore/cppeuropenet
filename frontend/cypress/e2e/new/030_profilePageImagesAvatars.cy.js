@@ -18,10 +18,17 @@
  *   npx cypress run --config-file cypress.config.cjs --spec "cypress/e2e/new/030_profilePageImagesAvatars.cy.js"
  */
 describe('ProfilePage - Mes images : 4 slots obligatoires (UI + API + réseau)', () => {
-  const { userOrigin: apiBaseUrl } = require('../../support/e2eApiUrls');
+  const { userOrigin: apiBaseUrl, E2E_PROFILE } = require('../../support/e2eApiUrls');
   const registerUrl = `${apiBaseUrl}/api/users/register/`;
-  /** GET binaires /mediaprofile/* : évite le proxy front (8082) qui peut streamer très lentement sur gros PNG. */
-  const userMediaProfileOrigin = 'http://127.0.0.1:7017';
+  const isStagingProfile = String(E2E_PROFILE || 'local').toLowerCase() === 'staging';
+  /**
+   * GET binaires /mediaprofile/* :
+   * - local : port user-media-profile direct (moins de latence sur gros PNG)
+   * - staging : même origine front (pas d'accès loopback depuis Cypress runner)
+   */
+  const userMediaProfileOrigin = isStagingProfile
+    ? String(Cypress.config('baseUrl') || '').replace(/\/$/, '')
+    : 'http://127.0.0.1:7017';
 
   const SLOT_TIMEOUT_MS = 90000;
 

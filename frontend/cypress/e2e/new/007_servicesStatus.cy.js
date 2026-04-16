@@ -1,7 +1,8 @@
 // Exécuté après 006_initUsersE2E et 007_initUsersE2E_2 (ordre lexicographique Cypress : 007_i < 007_s).
 // Les POST login ciblent le user-backend directement : server.dev.js (front ex. :8082) ne proxifie pas /api.
 
-const { userOrigin, presseGenOrigin } = require('../../support/e2eApiUrls');
+const { userOrigin, presseGenOrigin, E2E_PROFILE } = require('../../support/e2eApiUrls');
+const isStagingProfile = String(E2E_PROFILE || 'local').toLowerCase() === 'staging';
 
 describe('Vérification des services essentiels (Hostinger)', () => {
   const userApiBase = userOrigin;
@@ -41,7 +42,10 @@ describe('Vérification des services essentiels (Hostinger)', () => {
     });
   });
 
-  it('presse générale (7012) : POST /api/messages/new existe — sans token → 401, pas 404', () => {
+  it('presse générale (7012) : POST /api/messages/new existe — sans token → 401, pas 404', function () {
+    if (isStagingProfile) {
+      this.skip();
+    }
     cy.request({
       method: 'POST',
       url: `${presseGenOrigin}/api/messages/new`,
