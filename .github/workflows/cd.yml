@@ -107,5 +107,5 @@ jobs:
           cd frontend
           npm install
           cd ..
-          ./scripts/release-check.sh prod-smoke
+          PROD_BASE_URL="https://cppeurope.net" ./scripts/release-check.sh prod-smoke
 
