@@ -37,7 +37,7 @@ run_staging() {
 run_prod_smoke() {
   log "Gate prod-smoke: critical auth smoke (${PROD_BASE_URL})"
   cd "$FRONTEND_DIR"
-  npm run cypress:run:new -- --config "baseUrl=${PROD_BASE_URL}" --spec "cypress/e2e/new/006_initUsersE2E.cy.js,cypress/e2e/new/009_loginFormE2E.cy.js"
+  CYPRESS_E2E_PROFILE=staging npx cypress run --config-file cypress.config.cjs --config baseUrl=${PROD_BASE_URL} --spec "cypress/e2e/new/006_initUsersE2E.cy.js,cypress/e2e/new/009_loginFormE2E.cy.js"
 }
 
 run_ci_smoke() {
