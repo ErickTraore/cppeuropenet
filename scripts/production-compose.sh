@@ -2,6 +2,21 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+PORT=8082
+PID=$(lsof -ti tcp:$PORT || true)
+if [ ! -z "$PID" ]; then
+  echo "[INFO] Un processus occupe le port $PORT (PID: $PID). Il va être tué."
+  kill $PID
+  sleep 1
+  if lsof -ti tcp:$PORT >/dev/null; then
+    echo "[ERREUR] Impossible de libérer le port $PORT. Arrêtez manuellement le processus (PID: $PID)."
+    exit 1
+  else
+    echo "[OK] Port $PORT libéré."
+  fi
+else
+  echo "[OK] Port $PORT déjà libre."
+fi
 ENV_FILE="$ROOT/docker-compose.production.env"
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Fichier manquant : $ENV_FILE" >&2
