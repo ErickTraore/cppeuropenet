@@ -79,8 +79,27 @@ jobs:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_PRODUCTION_ENV: ${{ secrets.DEPLOY_PRODUCTION_ENV }}
           GIT_REF: ${{ inputs.git_ref }}
         run: |
+          if [ -z "$DEPLOY_PRODUCTION_ENV" ]; then
+            echo "::error::Le secret DEPLOY_PRODUCTION_ENV est vide ou absent (environment production)."
+            exit 1
+          fi
+
+          TMP_ENV=$(mktemp)
+          printf '%s\n' "$DEPLOY_PRODUCTION_ENV" > "$TMP_ENV"
+          sed -i 's/\r$//' "$TMP_ENV"
+          if ! grep -qE '^[A-Z0-9_]+=' "$TMP_ENV"; then
+            echo "::error::DEPLOY_PRODUCTION_ENV ne ressemble pas à un fichier .env valide."
+            rm -f "$TMP_ENV"
+            exit 1
+          fi
+
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "${DEPLOY_USER}@${DEPLOY_HOST}" "mkdir -p $(printf '%q' "$DEPLOY_PATH")"
+          scp -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "$TMP_ENV" "${DEPLOY_USER}@${DEPLOY_HOST}:$(printf '%q' "$DEPLOY_PATH")/docker-compose.production.env"
+          rm -f "$TMP_ENV"
+
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "set -euo pipefail
              cd $(printf '%q' "$DEPLOY_PATH")
