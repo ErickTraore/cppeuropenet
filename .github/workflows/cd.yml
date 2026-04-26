@@ -82,7 +82,20 @@ jobs:
           GIT_REF: ${{ inputs.git_ref }}
         run: |
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            "set -euo pipefail; cd $(printf '%q' "$DEPLOY_PATH"); git fetch origin; git reset --hard $(printf '%q' "origin/$GIT_REF"); bash ./deploy-with-tests.sh; ./scripts/production-compose.sh down; ./scripts/production-compose.sh up -d --build"
+            "set -euo pipefail
+             cd $(printf '%q' "$DEPLOY_PATH")
+             git fetch origin
+             git reset --hard $(printf '%q' "origin/$GIT_REF")
+             bash ./deploy-with-tests.sh
+             ./scripts/production-compose.sh down
+             ./scripts/production-compose.sh up -d --build
+             echo '-- Attente démarrage user-backend (max 30s)...'
+             for i in \$(seq 1 15); do
+               ./scripts/production-compose.sh exec -T user-backend echo ok 2>/dev/null && break
+               sleep 2
+             done
+             echo '-- Migrations Sequelize'
+             ./scripts/production-compose.sh exec -T user-backend npx sequelize-cli db:migrate"
 
   prod-smoke:
     name: Post-deploy smoke (prod)
