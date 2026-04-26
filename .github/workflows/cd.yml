@@ -99,6 +99,13 @@ jobs:
 
       - name: Run production smoke gate
         working-directory: frontend
+        env:
+          PROD_BASE_URL: https://cppeurope.net
+          HOSTINGER_FRONTEND_HOST: cppeurope.net
+          HOSTINGER_FRONTEND_PORT: "443"
+          HOSTINGER_USER_BACKEND_HOST: cppeurope.net
+          HOSTINGER_USER_BACKEND_PORT: "443"
+          E2E_BACKEND_HOST: cppeurope.net
         run: |
           npm install
           cd ..
