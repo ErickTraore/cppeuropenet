@@ -87,6 +87,7 @@ jobs:
   prod-smoke:
     name: Post-deploy smoke (prod)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: deploy
     steps:
       - uses: actions/checkout@v4
