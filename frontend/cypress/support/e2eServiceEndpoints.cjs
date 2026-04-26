@@ -82,12 +82,12 @@ function buildEnvFromInventory() {
   const host = envValue('E2E_BACKEND_HOST', 'localhost');
   return {
     E2E_BACKEND_HOST: host,
-    E2E_PORT_MEDIA_GLE: findPort(inventory, (n) => n.includes('mediagle-backend'), 7004),
-    E2E_PORT_MEDIA_LOCALE: findPort(inventory, (n) => n.includes('medialocale-backend'), 7008),
-    E2E_PORT_PRESSE_GENERALE: findPort(inventory, (n) => n.includes('pressegenerale-backend'), 7012),
-    E2E_PORT_PRESSE_LOCALE: findPort(inventory, (n) => n.includes('presselocale-backend'), 7005),
-    E2E_PORT_USER_MEDIA_PROFILE: findPort(inventory, (n) => n.includes('usermediaprofile-backend'), 7017),
-    E2E_PORT_USER_BACKEND: findPort(inventory, (n) => n.includes('user-backend'), 7001),
+    E2E_PORT_MEDIA_GLE: envValue('E2E_PORT_MEDIA_GLE', findPort(inventory, (n) => n.includes('mediagle-backend'), 7004)),
+    E2E_PORT_MEDIA_LOCALE: envValue('E2E_PORT_MEDIA_LOCALE', findPort(inventory, (n) => n.includes('medialocale-backend'), 7008)),
+    E2E_PORT_PRESSE_GENERALE: envValue('E2E_PORT_PRESSE_GENERALE', findPort(inventory, (n) => n.includes('pressegenerale-backend'), 7012)),
+    E2E_PORT_PRESSE_LOCALE: envValue('E2E_PORT_PRESSE_LOCALE', findPort(inventory, (n) => n.includes('presselocale-backend'), 7005)),
+    E2E_PORT_USER_MEDIA_PROFILE: envValue('E2E_PORT_USER_MEDIA_PROFILE', findPort(inventory, (n) => n.includes('usermediaprofile-backend'), 7017)),
+    E2E_PORT_USER_BACKEND: envValue('E2E_PORT_USER_BACKEND', findPort(inventory, (n) => n.includes('user-backend'), 7001)),
   };
 }
 
@@ -111,6 +111,9 @@ function contaboOrigin(portKey) {
   if (!host || !port) {
     throw new Error(`e2eServiceEndpoints: clé manquante ou invalide (${portKey})`);
   }
+  const portNum = parseInt(port, 10);
+  if (portNum === 443) return `https://${host}`;
+  if (portNum === 80) return `http://${host}`;
   return `http://${host}:${port}`;
 }
 
