@@ -36,6 +36,7 @@ const FormArticleVideo = ({ presseFormat = 'article-video' }) => {
     const formData = new FormData();
     formData.append('video', file);
     formData.append('messageId', String(messageId));
+    formData.append('format', String(presseFormat || 'article-video'));
 
     const base = getPresseGeneraleMediaApiBase().replace(/\/$/, '');
     const uploadUrl = `${base}/uploadVideo/`;

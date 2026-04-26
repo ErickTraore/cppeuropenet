@@ -1,0 +1,18 @@
+{
+  "contracts": [
+    {
+      "file": "cypress/e2e/new/new-1/010_presseGeneraleCreateOption1.cy.js",
+      "minLines": 60,
+      "requiredSnippets": [
+        "describe('010 - Presse Générale - Create (option 1: UI + Consulter)'",
+        "cy.loginByUi(adminEmail, adminPassword);",
+        "cy.visit('/#admin-presse-generale');",
+        "cy.contains('Article publié avec succès', { timeout: 60000 }).should('be.visible');",
+        "cy.visit('/#newpresse');",
+        "cy.contains('.presse__message__header__title', titre, { timeout: 45000 }).should('be.visible');",
+        "method: 'PUT'",
+        "title: titreRemplace"
+      ]
+    }
+  ]
+}

@@ -17,6 +17,9 @@ module.exports = {
   presseGenMessages: `${presseGenOrigin}/api/messages/`,
   presseLocMessages: `${presseLocOrigin}/api/messages/`,
   presseLocMessagesList: `${presseLocOrigin}/api/messages/?categ=presse-locale&siteKey=cppEurope`,
-  /** GET /api/ping direct sur un port inventaire (même hôte que la gate e2eInfrastructure). */
-  servicePingUrl: (port) => `http://${E2E_ENV.E2E_BACKEND_HOST}:${port}/api/ping`,
+  /** GET/POST health endpoint direct sur un port inventaire (même hôte que la gate e2eInfrastructure). */
+  servicePingUrl: (port, endpointPath = '/api/ping') => {
+    const p = endpointPath.startsWith('/') ? endpointPath : `/${endpointPath}`;
+    return `http://${E2E_ENV.E2E_BACKEND_HOST}:${port}${p}`;
+  },
 };

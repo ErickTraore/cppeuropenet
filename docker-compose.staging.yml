@@ -75,7 +75,8 @@ services:
     ports:
       - "${COMPOSE_NGINX_HOST_PORT}:80"
     volumes:
-      - ./nginx/staging:/etc/nginx/
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/staging/conf.d:/etc/nginx/conf.d:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
     networks:
       - app-network

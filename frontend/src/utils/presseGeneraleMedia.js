@@ -8,13 +8,11 @@ const FALLBACK_MEDIA_GLE = 'http://localhost:7004/api/media';
  */
 export function getPresseGeneraleMediaApiBase() {
   if (typeof window !== 'undefined') {
-    const h = window.location.hostname;
-    if (h === 'localhost' || h === '127.0.0.1') {
-      try {
-        return new URL('/api/media', window.location.origin).href.replace(/\/$/, '');
-      } catch {
-        /* ignore */
-      }
+    try {
+      // Keep Consulter aligned with the active frontend host/port (localhost, 127.0.0.1, LAN IP, etc.).
+      return new URL('/api/media', window.location.origin).href.replace(/\/$/, '');
+    } catch {
+      /* ignore */
     }
   }
 
@@ -37,10 +35,7 @@ export function getPresseGeneraleMediaApiBase() {
  */
 export function getPresseGeneraleAssetOrigin() {
   if (typeof window !== 'undefined') {
-    const h = window.location.hostname;
-    if (h === 'localhost' || h === '127.0.0.1') {
-      return window.location.origin;
-    }
+    return window.location.origin;
   }
   const resolved = resolveApiUrl(process.env.REACT_APP_BASE_URL, 'http://localhost:8080', 'BASE_URL');
   try {

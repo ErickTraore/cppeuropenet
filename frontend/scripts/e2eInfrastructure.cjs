@@ -8,6 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const https = require('https');
+const os = require('os');
 const { execSync } = require('child_process');
 
 const INVENTORY_PATH = path.resolve(__dirname, '../services-inventory.json');
@@ -68,6 +69,49 @@ function loadInventory() {
   return JSON.parse(fs.readFileSync(INVENTORY_PATH, 'utf-8'));
 }
 
+function findServiceByName(services, matcher) {
+  return services.find((s) => typeof s?.name === 'string' && matcher(s.name.toLowerCase()));
+}
+
+function resolveHost(service, fallbackHost = '127.0.0.1') {
+  return (service && service.host) || fallbackHost;
+}
+
+function getPrimaryIPv4() {
+  const nets = os.networkInterfaces();
+  for (const list of Object.values(nets)) {
+    for (const n of list || []) {
+      if (n && n.family === 'IPv4' && !n.internal) return n.address;
+    }
+  }
+  return null;
+}
+
+function uniqueHosts(arr) {
+  return [...new Set(arr.filter(Boolean))];
+}
+
+function hostCandidates(explicitHost, fallbackHost = '127.0.0.1') {
+  if (explicitHost) return [explicitHost];
+  return uniqueHosts([fallbackHost, '127.0.0.1', 'localhost', getPrimaryIPv4()]);
+}
+
+async function checkAcrossHosts(hosts, port, pathName, validator) {
+  for (const host of hosts) {
+    const res = await requestWithTimeout({ url: `http://${host}:${port}${pathName}` });
+    if (validator(res)) return { pass: true, host, res };
+  }
+  return { pass: false };
+}
+
+async function checkAcrossHostsWithRequest(hosts, requestFactory, validator) {
+  for (const host of hosts) {
+    const res = await requestWithTimeout(requestFactory(host));
+    if (validator(res)) return { pass: true, host, res };
+  }
+  return { pass: false };
+}
+
 /** Qui écoute sur ce port (127.0.0.1 / *), pour expliquer ECONNRESET / mauvais service. */
 function lsofListeners(port) {
   if (!port || typeof port !== 'number') return '';
@@ -88,49 +132,85 @@ function lsofListeners(port) {
  * @param {number} opts.userPort
  */
 function buildChecks(services, opts) {
-  const { frontPort, userPort } = opts;
+  const { frontPort, userPort, frontHost, userHost, defaultBackendHost } = opts;
   const checks = [];
 
   checks.push({
     name: `frontend /api/ping JSON (Express) (${frontPort})`,
     port: frontPort,
     run: async () => {
-      const res = await requestWithTimeout({
-        url: `http://127.0.0.1:${frontPort}/api/ping`,
+      const hosts = hostCandidates(frontHost, defaultBackendHost);
+      const found = await checkAcrossHosts(hosts, frontPort, '/api/ping', (res) => {
+        if (!res.ok || res.status !== 200) return false;
+        try {
+          const j = JSON.parse(res.body || '{}');
+          return !!(j && j.status === 'ok');
+        } catch {
+          return false;
+        }
       });
-      if (!res.ok) {
-        return { pass: false, detail: res.error || 'no response' };
-      }
-      if (res.status !== 200) {
-        return { pass: false, detail: `HTTP ${res.status} (attendu 200 + JSON { status: 'ok' })` };
-      }
-      try {
-        const j = JSON.parse(res.body || '{}');
-        const pass = j && j.status === 'ok';
-        return {
-          pass,
-          detail: pass ? `HTTP ${res.status} JSON ok` : `corps inattendu: ${(res.body || '').slice(0, 120)}`,
-        };
-      } catch {
-        return {
-          pass: false,
-          detail: `réponse non-JSON sur /api/ping (autre processus sur le port ${frontPort} ?)`,
-        };
-      }
+      if (found.pass) return { pass: true, detail: `HTTP 200 JSON ok via ${found.host}` };
+      return {
+        pass: false,
+        detail: `aucune réponse valide sur /api/ping via ${hosts.join('|')} (attendu 200 + JSON { status: 'ok' })`,
+      };
     },
   });
 
   services.forEach((svc) => {
     if (svc.port === frontPort) return;
+    const svcName = String(svc.name || '').toLowerCase();
+    if (svcName.includes('home-config')) {
+      checks.push({
+        name: `${svc.name} via frontend /api/home-config (${frontPort})`,
+        port: frontPort,
+        run: async () => {
+          const hosts = hostCandidates(frontHost, defaultBackendHost);
+          const found = await checkAcrossHosts(hosts, frontPort, '/api/home-config', (res) => {
+            if (!res.ok || res.status !== 200) return false;
+            try {
+              const j = JSON.parse(res.body || '{}');
+              return Array.isArray(j?.categories) && j.categories.length === 3;
+            } catch {
+              return false;
+            }
+          });
+          if (found.pass) {
+            return { pass: true, detail: `HTTP 200 via ${found.host}` };
+          }
+          return {
+            pass: false,
+            detail: `aucune réponse valide via frontend /api/home-config sur ${hosts.join('|')}`,
+          };
+        },
+      });
+      return;
+    }
+    const checkPort = Number(svc.healthPort || svc.port);
+    const svcHost = resolveHost(svc, defaultBackendHost);
+    const healthPath = svc.healthPath || '/api/ping';
     checks.push({
-      name: `${svc.name} /api/ping (${svc.port})`,
-      port: svc.port,
+      name: `${svc.name} ${healthPath} (${svcHost}:${checkPort})`,
+      port: checkPort,
       run: async () => {
-        const res = await requestWithTimeout({ url: `http://127.0.0.1:${svc.port}/api/ping` });
-        const pass = res.ok && [200, 304, 400, 401].includes(res.status);
+        const hosts = hostCandidates(svc.host || null, defaultBackendHost);
+        const method = (svc.healthMethod || 'GET').toUpperCase();
+        const body = svc.healthBody;
+        const found = await checkAcrossHostsWithRequest(
+          hosts,
+          (host) => ({
+            method,
+            url: `http://${host}:${checkPort}${healthPath}`,
+            body,
+          }),
+          (res) => {
+          return res.ok && [200, 304, 400, 401].includes(res.status);
+          }
+        );
+        const pass = found.pass;
         return {
           pass,
-          detail: pass ? `HTTP ${res.status}` : res.ok ? `HTTP ${res.status}` : res.error,
+          detail: pass ? `HTTP ${found.res.status} via ${found.host}` : `aucune réponse valide via ${hosts.join('|')}`,
         };
       },
     });
@@ -140,15 +220,31 @@ function buildChecks(services, opts) {
     name: `auth POST /api/users/login (${userPort})`,
     port: userPort,
     run: async () => {
-      const res = await requestWithTimeout({
-        method: 'POST',
-        url: `http://127.0.0.1:${userPort}/api/users/login`,
-        body: { email: 'user2026@cppeurope.net', password: 'user2026!' },
-      });
-      const pass = res.ok && [200, 400, 401, 403, 404].includes(res.status);
+      const hosts = hostCandidates(userHost, defaultBackendHost);
+      const payload = { email: 'user2026@cppeurope.net', password: 'user2026!' };
+      for (const host of hosts) {
+        const loginRes = await requestWithTimeout({
+          method: 'POST',
+          url: `http://${host}:${userPort}/api/users/login`,
+          body: payload,
+        });
+
+        if (loginRes.ok && [200, 400, 401, 403].includes(loginRes.status)) {
+          return { pass: true, detail: `HTTP ${loginRes.status} via ${host} (login)` };
+        }
+
+        const registerRes = await requestWithTimeout({
+          method: 'POST',
+          url: `http://${host}:${userPort}/api/users/register/`,
+          body: payload,
+        });
+        if (registerRes.ok && [200, 400, 401, 403, 409].includes(registerRes.status)) {
+          return { pass: true, detail: `HTTP ${registerRes.status} via ${host} (register)` };
+        }
+      }
       return {
-        pass,
-        detail: pass ? `HTTP ${res.status}` : res.ok ? `HTTP ${res.status}` : res.error,
+        pass: false,
+        detail: `aucune réponse auth valide via ${hosts.join('|')}`,
       };
     },
   });
@@ -170,14 +266,44 @@ function formatFailureReport(failures, checks) {
  * Boucle jusqu’à ce que tous les checks passent ou maxWaitMs dépassé.
  */
 async function runInfrastructureGate(options = {}) {
+  const services = loadInventory();
+  const frontendService = findServiceByName(services, (n) => n.includes('frontend')) || {};
+  const userBackendService =
+    findServiceByName(services, (n) => n.includes('user-backend')) || {};
+
+  const defaultBackendHost = process.env.E2E_BACKEND_HOST || (process.platform === 'darwin' ? 'localhost' : '127.0.0.1');
+  const frontHost =
+    options.frontHost != null
+      ? String(options.frontHost)
+      :
+          process.env.CYPRESS_FRONTEND_HOST ||
+          process.env.HOSTINGER_FRONTEND_HOST ||
+          process.env.E2E_FRONTEND_HOST ||
+          frontendService.host ||
+          defaultBackendHost;
+  const userHost =
+    options.userHost != null
+      ? String(options.userHost)
+      :
+          process.env.CYPRESS_USER_BACKEND_HOST ||
+          process.env.HOSTINGER_USER_BACKEND_HOST ||
+          userBackendService.host ||
+          defaultBackendHost;
+
   const frontPort =
     options.frontPort != null
       ? parseInt(String(options.frontPort), 10)
-      : parseInt(process.env.HOSTINGER_FRONTEND_PORT || '8082', 10);
+      : parseInt(
+          process.env.HOSTINGER_FRONTEND_PORT || String(frontendService.port || 8082),
+          10,
+        );
   const userPort =
     options.userPort != null
       ? parseInt(String(options.userPort), 10)
-      : parseInt(process.env.HOSTINGER_USER_BACKEND_PORT || '7001', 10);
+      : parseInt(
+          process.env.HOSTINGER_USER_BACKEND_PORT || String(userBackendService.healthPort || userBackendService.port || 7001),
+          10,
+        );
   const maxWaitMs = options.maxWaitMs != null ? options.maxWaitMs : 180000;
   const pollMs = options.pollMs != null ? options.pollMs : 2000;
   const quietProgress = options.quietProgress === true;
@@ -189,8 +315,13 @@ async function runInfrastructureGate(options = {}) {
       : parseInt(process.env.E2E_PRECHECK_PROGRESS_MS || '8000', 10);
   const progressLogMs = Number.isFinite(progressLogMsRaw) && progressLogMsRaw > 0 ? progressLogMsRaw : 8000;
 
-  const services = loadInventory();
-  const checks = buildChecks(services, { frontPort, userPort });
+  const checks = buildChecks(services, {
+    frontPort,
+    userPort,
+    frontHost,
+    userHost,
+    defaultBackendHost,
+  });
   const deadline = Date.now() + maxWaitMs;
   const startedAt = Date.now();
   let lastFailures = [];
@@ -236,8 +367,8 @@ async function runInfrastructureGate(options = {}) {
 
   const report = formatFailureReport(lastFailures, checks);
   throw new Error(
-    `Infrastructure E2E non prête après ${maxWaitMs} ms (HOSTINGER_FRONTEND_PORT=${frontPort}, HOSTINGER_USER_BACKEND_PORT=${userPort}).\n` +
-      `Démarrer les stacks Docker (Hostinger + Contabo) et vérifier qu’aucun autre programme n’occupe ces ports sur 127.0.0.1.\n\n` +
+    `Infrastructure E2E non prête après ${maxWaitMs} ms (HOSTINGER_FRONTEND=${frontHost}:${frontPort}, HOSTINGER_USER_BACKEND=${userHost}:${userPort}).\n` +
+      `Démarrer les stacks Docker (Hostinger + Contabo) et vérifier qu’aucun autre programme n’occupe ces ports.\n\n` +
       report
   );
 }

@@ -37,6 +37,7 @@ const ProfilePage = () => {
   });
 
   const [uploading, setUploading] = useState({});
+  const [uploadedSrcBySlot, setUploadedSrcBySlot] = useState({});
   // ---- 1) Chargement initial du profil ----
   useEffect(() => {
     console.log('[ProfilePage] useEffect(mount) → dispatch(fetchProfileInfo())');
@@ -104,7 +105,7 @@ const ProfilePage = () => {
   };
 
   // ---- 6) Upload d'image ----
-  const handleFileUpload = async (mediaId, file) => {
+  const handleFileUpload = async (mediaId, slotIndex, file) => {
     console.log('[ProfilePage] 📤 Début upload, mediaId =', mediaId, 'file =', file);
 
     if (!file) {
@@ -142,6 +143,12 @@ const ProfilePage = () => {
 
       const imageUrl = `/imagesprofile/${result.filename}`;
       console.log('[ProfilePage] ✅ URL image calculée =', imageUrl);
+
+      // Affichage immédiat dans l'UI (cache-busting) sans attendre le round-trip Redux.
+      setUploadedSrcBySlot((prev) => ({
+        ...prev,
+        [slotIndex]: `${imageUrl}?v=${Date.now()}`,
+      }));
 
       console.log('[ProfilePage] Dispatch updateProfileMedia avec mediaId =', mediaId);
       await dispatch(updateProfileMedia(mediaId, { url: imageUrl }));
@@ -199,8 +206,25 @@ const ProfilePage = () => {
 
   const handleProfileImageError = (e, slot) => {
     const img = e.currentTarget;
+    const currentSrc = String(img.getAttribute('src') || '');
+
+    // Ne jamais écraser un avatar custom par le défaut sur une erreur ponctuelle
+    // (latence proxy/IO). On conserve le src custom pour éviter une régression UX.
+    if (currentSrc.includes('/imagesprofile/')) {
+      return;
+    }
+
     img.onerror = null;
     img.src = resolveProfileMediaSrc(null, slot);
+
+    if (slot != null) {
+      setUploadedSrcBySlot((prev) => {
+        if (!Object.prototype.hasOwnProperty.call(prev, slot)) return prev;
+        const next = { ...prev };
+        delete next[slot];
+        return next;
+      });
+    }
   };
 
   // ---- 9) JSX ----
@@ -312,7 +336,7 @@ const ProfilePage = () => {
               <div key={media.id} className="images__container__grid__card">
                 <div className="images__container__grid__card__image-wrap">
                   <img
-                    src={resolveProfileMediaSrc(media.path, media.slot)}
+                    src={uploadedSrcBySlot[media.slot] || resolveProfileMediaSrc(media.path, media.slot)}
                     alt="ProfileImage"
                     className="profile-image"
                     loading="lazy"
@@ -326,7 +350,7 @@ const ProfilePage = () => {
                     type="file"
                     accept="image/*"
                     onChange={(e) =>
-                      handleFileUpload(media.id, e.target.files[0])
+                      handleFileUpload(media.id, media.slot, e.target.files[0])
                     }
                     disabled={uploading[media.id]}
                   />

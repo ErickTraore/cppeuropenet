@@ -60,6 +60,7 @@ const FormArticleThumbnailVideo = ({ presseFormat = 'article-thumbnail-video' })
     const formData = new FormData();
     formData.append(endpoint, file);
     formData.append('messageId', String(messageId));
+    formData.append('format', String(presseFormat || 'article-thumbnail-video'));
 
     const base = getPresseGeneraleMediaApiBase().replace(/\/$/, '');
     const path = endpoint === 'image' ? 'uploadImage' : 'uploadVideo';
@@ -114,7 +115,7 @@ const FormArticleThumbnailVideo = ({ presseFormat = 'article-thumbnail-video' })
           title: newMessage.title,
           content: newMessage.content,
           categ: 'presse',
-          format: presseFormat,
+          format: String(presseFormat || 'article-thumbnail-video'),
         }),
       });
 

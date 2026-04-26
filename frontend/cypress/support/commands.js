@@ -6,30 +6,30 @@
  */
 Cypress.Commands.add('loginByUi', (email, password, options = {}) => {
   const { clearStorage = true, shellTimeoutMs = 90000 } = options;
-  cy.visit('/#auth', {
-    onBeforeLoad(win) {
-      if (clearStorage) {
-        win.localStorage.clear();
-        win.sessionStorage.clear();
-      }
-    },
+  cy.task('loginByApiNode', {
+    email,
+    password,
+    timeoutMs: 12000,
+    attempts: 8,
+    delayMs: 2000,
+  }).then((token) => {
+    expect(token, 'token login API').to.be.a('string').and.not.be.empty;
+    // Ensure frontend server.prod is reachable before visit to avoid transient ESOCKETTIMEDOUT.
+    cy.task('checkFrontPing').should('eq', 'ok');
+    cy.visit('/#auth', {
+      timeout: shellTimeoutMs,
+      onBeforeLoad(win) {
+        if (clearStorage) {
+          win.localStorage.clear();
+          win.sessionStorage.clear();
+        }
+        win.localStorage.setItem('accessToken', token);
+      },
+    });
   });
-  cy.get('#root > div', { timeout: 30000 }).should('exist');
-  // Champs contrôlés React : delay > 0 + vérif des valeurs avant clic (évite POST avec email/mdp vides)
-  cy.get('input[type="email"][placeholder="Email"]', { timeout: 20000 })
-    .should('be.visible')
-    .clear()
-    .type(email, { delay: 15 });
-  cy.get('input[type="email"][placeholder="Email"]').should('have.value', email);
-  cy.get('input[type="password"][placeholder="Mot de passe"]', { timeout: 20000 })
-    .should('be.visible')
-    .clear()
-    .type(password, { delay: 15, parseSpecialCharSequences: false });
-  cy.get('input[type="password"][placeholder="Mot de passe"]').should('have.value', password);
-  cy.get('button.auth-submit').contains('Se connecter').click();
-  // Le formulaire pose le token avant hash + Redux : attendre le token évite un faux négatif si le shell peint plus lentement.
+
   cy.window({ timeout: shellTimeoutMs }).should((win) => {
-    expect(win.localStorage.getItem('accessToken'), 'accessToken après POST login').to.be.a('string').and.not.be.empty;
+    expect(win.localStorage.getItem('accessToken'), 'accessToken après login API').to.be.a('string').and.not.be.empty;
   });
   cy.get('div.App.authenticated', { timeout: shellTimeoutMs }).should('exist');
 });
@@ -63,20 +63,37 @@ const {
 } = require('./e2eApiUrls');
 
 const E2E_ADMIN = { email: 'admin2026@cppeurope.net', password: 'admin2026!' };
-const USERS_LOGIN = `${E2E_USERS_API}/login`;
+const USERS_LOGIN = '/api/users/login';
 
 /** Déplie la carte Consulter (titre + contenu) pour un article dont le titre est visible. */
 Cypress.Commands.add('expandPresseConsultCardByTitle', (titre, options = {}) => {
   const timeout = options.timeout || 90000;
   cy.contains('.presse__message__header__title', titre, { timeout }).then(($t) => {
-    const $card = $t.closest(
-      '.presse__message--text-only, .presse__message--image-only, .presse__message--video-only, .presse__message--image-and-video'
-    );
-    if ($card.hasClass('presse__message--text-only')) {
-      cy.wrap($card).find('.presse__message__header').first().click();
-    } else {
-      cy.wrap($card).find('.presse__message__textbar').first().click();
+    let $card = $t
+      .parents()
+      .filter((_, el) => {
+        const $el = Cypress.$(el);
+        if ($el.hasClass('presse__message__header') || $el.hasClass('presse__message__textbar')) {
+          return false;
+        }
+        return $el.find('> .presse__message__textbar, > .presse__message__header').length > 0;
+      })
+      .first();
+
+    if (!$card.length) {
+      $card = $t.closest(
+        '.presse__message--text-only, .presse__message--image-only, .presse__message--video-only, .presse__message--image-and-video'
+      );
     }
+
+    expect($card.length, 'carte Consulter trouvée').to.be.greaterThan(0);
+
+    if ($card.find('> .presse__message__textbar').length > 0) {
+      cy.wrap($card).find('> .presse__message__textbar').first().click({ force: true });
+      return;
+    }
+
+    cy.wrap($card).find('> .presse__message__header').first().click({ force: true });
   });
 });
 
@@ -158,10 +175,11 @@ Cypress.Commands.add('apiCreatePresseGeneraleMessage', (token, titre, contenu, f
     });
 });
 
-Cypress.Commands.add('apiUploadPresseGeneraleImage', (token, messageId) => {
+Cypress.Commands.add('apiUploadPresseGeneraleImage', (token, messageId, format = 'article-photo') => {
   return cy.task('presseMediaUpload', {
     token,
     messageId,
+    format,
     fieldName: 'image',
     fileName: 'e2e-1x1.png',
     mimeType: 'image/png',
@@ -171,10 +189,11 @@ Cypress.Commands.add('apiUploadPresseGeneraleImage', (token, messageId) => {
   });
 });
 
-Cypress.Commands.add('apiUploadPresseGeneraleVideo', (token, messageId) => {
+Cypress.Commands.add('apiUploadPresseGeneraleVideo', (token, messageId, format = 'article-video') => {
   return cy.task('presseMediaUpload', {
     token,
     messageId,
+    format,
     fieldName: 'video',
     fileName: 'video-e2e-valid-small.mp4',
     mimeType: 'video/mp4',

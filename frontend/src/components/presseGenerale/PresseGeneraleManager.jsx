@@ -5,20 +5,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchMessages } from '../../actions/messageActions';
 import { resolveApiUrl } from '../../utils/apiUrls';
 import { getPresseGeneraleMediaApiBase, absolutizePresseGeneraleMediaUrl } from '../../utils/presseGeneraleMedia';
+import { getAllowedTypesFromTitle, getManagerMediaNoteKind, getAllowedTypesFromFormat } from '../../utils/managerMediaNote';
 import './PresseGeneraleManager.css';
 
 const USER_API = resolveApiUrl(process.env.REACT_APP_USER_API, 'http://localhost:7001/api/users', 'USER_API');
 const PRESSE_GENERALE_API = resolveApiUrl(process.env.REACT_APP_PRESSE_GENERALE_API, USER_API, 'PRESSE_GENERALE_API');
 const MEDIA_API = `${getPresseGeneraleMediaApiBase().replace(/\/$/, '')}`;
-
-const getAllowedTypesFromTitle = (title = '') => {
-  const normalized = String(title).toUpperCase();
-  if (normalized.includes('TITRE+PHOTO+VID')) return { image: true, video: true };
-  if (normalized.includes('TITRE+PHOTO')) return { image: true, video: false };
-  if (normalized.includes('TITRE+VIDEO') || normalized.includes('TITRE+VID')) return { image: false, video: true };
-  if (normalized.includes('TITRE')) return { image: false, video: false };
-  return null;
-};
 
 const PresseGeneraleManager = () => {
   const dispatch = useDispatch();
@@ -114,6 +106,7 @@ const PresseGeneraleManager = () => {
         const fd = new FormData();
         fd.append('image', imageFile);
         fd.append('messageId', editingId);
+        fd.append('format', currentMessage?.format || '');
         await fetch(`${MEDIA_API}/uploadImage`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
@@ -132,6 +125,7 @@ const PresseGeneraleManager = () => {
         const fd = new FormData();
         fd.append('video', videoFile);
         fd.append('messageId', editingId);
+        fd.append('format', currentMessage?.format || '');
         await fetch(`${MEDIA_API}/uploadVideo`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
@@ -206,30 +200,50 @@ const PresseGeneraleManager = () => {
 
                   <div className="media-upload-section">
                     <h4>🔄 Remplacer les médias :</h4>
+                    {(() => {
+                      const mediaList = Array.isArray(messageMedia[msg.id]) ? messageMedia[msg.id] : [];
+                      const noteKind = getManagerMediaNoteKind(msg.title || '', mediaList, msg.format || '');
+                      const allowedByFormat = getAllowedTypesFromFormat(msg.format || '');
+                      const hasImage = mediaList.some((m) => (m.type || '').toLowerCase() === 'image');
+                      const hasVideo = mediaList.some((m) => (m.type || '').toLowerCase() === 'video');
+                      const showImage = hasImage || !!(allowedByFormat && allowedByFormat.image);
+                      const showVideo = hasVideo || !!(allowedByFormat && allowedByFormat.video);
 
-                    {messageMedia[msg.id]?.some(m => (m.type || '').toLowerCase() === 'image') && (
-                      <div className="media-upload">
-                        <label>📷 Remplacer l'image :</label>
-                        <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} />
-                        {imageFile && <p className="file-count">✅ {imageFile.name} sélectionnée</p>}
-                      </div>
-                    )}
+                      return (
+                        <>
+                          {showImage && (
+                            <div className="media-upload">
+                              <label>📷 {hasImage ? 'Remplacer l\'image' : 'Ajouter une image'} :</label>
+                              <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} />
+                              {imageFile && <p className="file-count">✅ {imageFile.name} sélectionnée</p>}
+                            </div>
+                          )}
 
-                    {messageMedia[msg.id]?.some(m => (m.type || '').toLowerCase() === 'video') && (
-                      <div className="media-upload">
-                        <label>🎥 Remplacer la vidéo :</label>
-                        <input type="file" accept="video/*" onChange={(e) => setVideoFile(e.target.files[0])} />
-                        {videoFile && <p className="file-count">✅ {videoFile.name} sélectionnée</p>}
-                      </div>
-                    )}
+                          {showVideo && (
+                            <div className="media-upload">
+                              <label>🎥 {hasVideo ? 'Remplacer la vidéo' : 'Ajouter une vidéo'} :</label>
+                              <input type="file" accept="video/*" onChange={(e) => setVideoFile(e.target.files[0])} />
+                              {videoFile && <p className="file-count">✅ {videoFile.name} sélectionnée</p>}
+                            </div>
+                          )}
 
-                    {(!messageMedia[msg.id] || messageMedia[msg.id].length === 0) && (
-                      <p className="media-note">📝 Cet article est de type "Texte seul" - aucun média ne peut être ajouté.</p>
-                    )}
+                          {/* Correction : la note "texte seul" ne doit JAMAIS s'afficher si un média est présent ou attaché */}
+                          {(Array.isArray(mediaList) && mediaList.length > 0) || msg.attachment ? null : (
+                            noteKind === 'text-only' && (
+                              <p className="media-note">📝 Cet article est de type "Texte seul" - aucun média ne peut être ajouté.</p>
+                            )
+                          )}
 
-                    {messageMedia[msg.id] && messageMedia[msg.id].length > 0 && (
-                      <p className="media-note">💡 Vous pouvez uniquement remplacer les médias existants. Le type d'article ne peut pas être modifié.</p>
-                    )}
+                          {noteKind === 'mismatch' && (
+                            <p className="media-note">⚠️ Incohérence: ce format attend un média, mais aucun média n'a été chargé pour cet article.</p>
+                          )}
+
+                          {noteKind === 'replace' && (
+                            <p className="media-note">💡 Vous pouvez uniquement remplacer les médias existants. Le type d'article ne peut pas être modifié.</p>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
 
                   <div className="form-actions">
@@ -246,6 +260,10 @@ const PresseGeneraleManager = () => {
                   <p className="message-content">{msg.content}</p>
                   {msg.link && <p className="message-link">🔗 <a href={msg.link} target="_blank" rel="noopener noreferrer">{msg.link}</a></p>}
                   {msg.attachment && <p className="message-attachment">📎 {msg.attachment}</p>}
+                  {/* DEBUG: Affiche le contenu brut de messageMedia[msg.id] */}
+                  <pre style={{background:'#ffe',color:'#a00',fontSize:'0.8em',padding:'4px',margin:'4px 0'}}>
+                    {JSON.stringify(messageMedia[msg.id], null, 2)}
+                  </pre>
                   {messageMedia[msg.id] && messageMedia[msg.id].length > 0 && (
                     <div className="message-media">
                       <h4>📁 Médias :</h4>

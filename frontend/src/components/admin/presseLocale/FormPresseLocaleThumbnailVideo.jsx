@@ -4,6 +4,7 @@ import { parsePresseMessageIdFromCreateResponse } from '../../../utils/presseGen
 import { getPresseLocaleApiRoot, getPresseLocaleMediaApiRoot } from '../../../utils/presseLocaleApi';
 
 const SITE_KEY = process.env.REACT_APP_PRESSE_LOCALE_SITE_KEY || 'cppEurope';
+const LOCALE_THUMBNAIL_VIDEO_FORMAT = 'article-thumbnail-video';
 
 const FormPresseLocaleThumbnailVideo = () => {
   const [newMessage, setNewMessage] = useState({
@@ -54,6 +55,7 @@ const FormPresseLocaleThumbnailVideo = () => {
     const formData = new FormData();
     formData.append(endpoint, file);
     formData.append('messageId', String(messageId));
+    formData.append('format', LOCALE_THUMBNAIL_VIDEO_FORMAT);
 
     const base = getPresseLocaleMediaApiRoot().replace(/\/$/, '');
     const path = endpoint === 'image' ? 'uploadImage' : 'uploadVideo';
@@ -109,6 +111,7 @@ const FormPresseLocaleThumbnailVideo = () => {
           content: newMessage.content,
           categ: 'presse-locale',
           siteKey: SITE_KEY,
+          format: LOCALE_THUMBNAIL_VIDEO_FORMAT,
         }),
       });
 

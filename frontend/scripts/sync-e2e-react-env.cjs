@@ -11,7 +11,9 @@ const { E2E_ENV } = require('../cypress/support/e2eServiceEndpoints.cjs');
 const root = path.resolve(__dirname, '..');
 const outPath = path.join(root, '.env.production.local');
 
-const host = process.env.E2E_REACT_HOST || '127.0.0.1';
+// `127.0.0.1` may be intercepted by non-project services on some setups; `localhost`
+// keeps E2E frontend/API calls on the expected local stack by default.
+const host = process.env.E2E_REACT_HOST || 'localhost';
 const frontPort = process.env.HOSTINGER_FRONTEND_PORT || '8082';
 const profile = String(process.env.CYPRESS_E2E_PROFILE || process.env.E2E_REACT_PROFILE || 'local').toLowerCase();
 const isStagingProfile = profile === 'staging';

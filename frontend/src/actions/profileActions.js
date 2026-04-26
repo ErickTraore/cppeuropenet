@@ -94,10 +94,11 @@ async function ensureProfileMediaSlots(profileId, slots) {
     await postDefaultProfileSlot(profileId, slot);
   }
   const base = getProfileMediaApiBase();
-  const url = `${base}/mediaProfile/${profileId}`;
+  const url = `${base}/mediaProfile/${profileId}?ts=${Date.now()}`;
   const token = localStorage.getItem('accessToken');
   const res = await fetch(url, {
     method: 'GET',
+    cache: 'no-store',
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -262,12 +263,13 @@ export const fetchProfileMedia = (profileId) => async (dispatch) => {
   }
 
   const base = getProfileMediaApiBase();
-  const url = `${base}/mediaProfile/${profileId}`;
+  const url = `${base}/mediaProfile/${profileId}?ts=${Date.now()}`;
   console.log('[fetchProfileMedia] GET', url, 'profileId=', profileId);
 
   try {
     const response = await fetch(url, {
       method: 'GET',
+      cache: 'no-store',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',

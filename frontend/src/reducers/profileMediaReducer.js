@@ -26,7 +26,7 @@ export const profileMediaReducer = (state = initialState, action) => {
         loading: false,
         slots: Array.isArray(state.slots)
           ? state.slots.map(slot =>
-            slot.id === action.payload.id ? action.payload : slot
+            Number(slot.id) === Number(action.payload.id) ? action.payload : slot
           )
           : [action.payload] // fallback minimal
       };

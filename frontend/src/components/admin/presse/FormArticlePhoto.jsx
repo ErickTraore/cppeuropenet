@@ -40,6 +40,7 @@ const FormArticlePhoto = ({ presseFormat = 'article-photo' }) => {
     const formData = new FormData();
     formData.append('image', file);
     formData.append('messageId', String(messageId));
+    formData.append('format', String(presseFormat || 'article-photo'));
 
     try {
       const response = await fetch(`${PRESSE_MEDIA_API}/uploadImage/`, {
@@ -84,6 +85,7 @@ const FormArticlePhoto = ({ presseFormat = 'article-photo' }) => {
     setIsLoading(true);
     setErrorMessage('');
     setSuccessMessage('');
+    let newMessageId = null;
 
     try {
       console.log('📝 Envoi du formulaire à:', `${PRESSE_GENERALE_API}/messages/new`);
@@ -108,20 +110,15 @@ const FormArticlePhoto = ({ presseFormat = 'article-photo' }) => {
       }
 
       const created = await messageResponse.json();
-      const newMessageId = parsePresseMessageIdFromCreateResponse(created);
+      newMessageId = parsePresseMessageIdFromCreateResponse(created);
       if (newMessageId == null) {
         throw new Error('Réponse API presse invalide : id du message manquant après création.');
       }
       console.log('✅ Message créé avec ID:', newMessageId);
 
-      // Uploader l'image
-      let uploadedFilename = null;
-      try {
-        uploadedFilename = await uploadImage(newMessage.image, newMessageId);
-        console.log('✅ Image uploadée:', uploadedFilename);
-      } catch (error) {
-        console.error('⚠️ Erreur lors de l\'upload de l\'image:', error);
-      }
+      // Upload obligatoire: on ne valide jamais un article photo sans média.
+      const uploadedFilename = await uploadImage(newMessage.image, newMessageId);
+      console.log('✅ Image uploadée:', uploadedFilename);
 
       // Mettre à jour l'article avec le nom de l'image si l'upload a réussi
       if (uploadedFilename) {
@@ -169,6 +166,19 @@ const FormArticlePhoto = ({ presseFormat = 'article-photo' }) => {
     } catch (error) {
       console.error('❌ Erreur lors de l\'envoi:', error);
       console.error('Error details:', { message: error.message, stack: error.stack });
+      // Evite les faux positifs en supprimant l'article créé si l'upload image échoue ensuite.
+      if (newMessageId) {
+        try {
+          await fetch(`${PRESSE_GENERALE_API}/messages/${newMessageId}`, {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+            },
+          });
+        } catch {
+          // Best effort rollback only.
+        }
+      }
       setErrorMessage('⚠️ Une erreur est survenue lors de l\'envoi.');
       setIsLoading(false);
     }

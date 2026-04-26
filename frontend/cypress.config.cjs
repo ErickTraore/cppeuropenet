@@ -5,30 +5,83 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
 const { runInfrastructureGate } = require('./scripts/e2eInfrastructure.cjs');
+
+function firstNonInternalIPv4() {
+  const nets = os.networkInterfaces();
+  for (const list of Object.values(nets)) {
+    for (const n of list || []) {
+      if (n && n.family === 'IPv4' && !n.internal) return n.address;
+    }
+  }
+  return null;
+}
+
 const { E2E_ENV } = require('./cypress/support/e2eServiceEndpoints.cjs');
 
+function normalizeBasePath(input) {
+  const raw = String(input || '').trim();
+  if (!raw || raw === '/') return '';
+  const withLeadingSlash = raw.startsWith('/') ? raw : `/${raw}`;
+  return withLeadingSlash.replace(/\/+$/, '');
+}
+
 const LOCAL_FRONT_PORT = parseInt(process.env.HOSTINGER_FRONTEND_PORT || '8082', 10);
-const LOCAL_USER_PORT = parseInt(process.env.HOSTINGER_USER_BACKEND_PORT || '7001', 10);
-const FRONTEND_PROD_PING = `http://127.0.0.1:${LOCAL_FRONT_PORT}/api/ping`;
+const configuredFrontHost = process.env.HOSTINGER_FRONTEND_HOST || process.env.E2E_FRONTEND_HOST || '';
+const primaryIPv4 = firstNonInternalIPv4();
+const normalizedConfiguredFrontHost = String(configuredFrontHost || '').trim();
+const useLanFallbackForLocalhost =
+  process.platform === 'darwin' &&
+  (normalizedConfiguredFrontHost === '' ||
+    normalizedConfiguredFrontHost === 'localhost' ||
+    normalizedConfiguredFrontHost === '127.0.0.1');
+const CYPRESS_FRONTEND_HOST = useLanFallbackForLocalhost
+  ? primaryIPv4 || 'localhost'
+  : normalizedConfiguredFrontHost;
+const FRONT_BASE_PATH = normalizeBasePath(
+  process.env.HOSTINGER_FRONTEND_BASE_PATH || process.env.E2E_FRONTEND_BASE_PATH || ''
+);
+const LOCAL_USER_PORT = parseInt(
+  process.env.HOSTINGER_USER_BACKEND_PORT || E2E_ENV.E2E_PORT_USER_BACKEND || '17001',
+  10
+);
+const configuredUserHost =
+  process.env.HOSTINGER_USER_BACKEND_HOST || process.env.E2E_BACKEND_HOST || process.env.HOSTINGER_FRONTEND_HOST || '';
+const CYPRESS_USER_BACKEND_HOST =
+  process.platform === 'darwin' && (configuredUserHost === '' || configuredUserHost === 'localhost' || configuredUserHost === '127.0.0.1')
+    ? 'localhost'
+    : configuredUserHost || '127.0.0.1';
 const HOME_CONFIG_BASELINE_FILE = path.join(__dirname, 'cypress', '.e2e-home-config-baseline.json');
 
-function detectE2EProfile(baseUrl) {
-  const forced = (process.env.CYPRESS_E2E_PROFILE || '').trim().toLowerCase();
-  if (forced === 'local' || forced === 'staging') {
-    return forced;
-  }
-  try {
-    const host = new URL(baseUrl || `http://127.0.0.1:${LOCAL_FRONT_PORT}`).hostname;
-    return host === '127.0.0.1' || host === 'localhost' ? 'local' : 'staging';
-  } catch {
-    return 'local';
-  }
+function frontHostCandidates() {
+  const explicit = process.env.CYPRESS_FRONTEND_HOST || process.env.HOSTINGER_FRONTEND_HOST || process.env.E2E_FRONTEND_HOST || null;
+  const candidates = [explicit, 'localhost', '127.0.0.1', firstNonInternalIPv4()]
+    .filter(Boolean)
+    .map((h) => String(h));
+  return [...new Set(candidates)];
+}
+
+function frontPingUrl(host) {
+  return `http://${host}:${LOCAL_FRONT_PORT}${FRONT_BASE_PATH}/api/ping`;
+}
+
+function frontApiUrl(host, apiPath) {
+  const pathOnly = apiPath.startsWith('/') ? apiPath : `/${apiPath}`;
+  return `http://${host}:${LOCAL_FRONT_PORT}${FRONT_BASE_PATH}${pathOnly}`;
+}
+
+function signHs256Jwt(payload, secret) {
+  const header = { alg: 'HS256', typ: 'JWT' };
+  const enc = (obj) => Buffer.from(JSON.stringify(obj)).toString('base64url');
+  const unsigned = `${enc(header)}.${enc(payload)}`;
+  const sig = crypto.createHmac('sha256', secret).update(unsigned).digest('base64url');
+  return `${unsigned}.${sig}`;
 }
 
 /** JSON HTTP (Node) pour login + PUT home-config — teardown fiable hors navigateur. */
-function httpJsonRequest(urlStr, { method = 'GET', headers = {}, jsonBody = null } = {}) {
+function httpJsonRequest(urlStr, { method = 'GET', headers = {}, jsonBody = null, timeoutMs = 10000 } = {}) {
   return new Promise((resolve, reject) => {
     const u = new URL(urlStr);
     const isHttps = u.protocol === 'https:';
@@ -62,42 +115,70 @@ function httpJsonRequest(urlStr, { method = 'GET', headers = {}, jsonBody = null
         else reject(new Error(`HTTP ${res.statusCode} ${raw.slice(0, 200)}`));
       });
     });
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error(`HTTP timeout after ${timeoutMs}ms (${method} ${u.pathname})`));
+    });
     req.on('error', reject);
     if (payload) req.write(payload);
     req.end();
   });
 }
 
+async function retryAsync(fn, { attempts = 6, delayMs = 1500 } = {}) {
+  let lastErr;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      return await fn(i + 1);
+    } catch (err) {
+      lastErr = err;
+      if (i < attempts - 1) {
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 /** True si le front est bien server.prod.js (JSON { status: 'ok' }), pas un SPA statique qui renvoie index.html en 200. */
 function httpPingOk(url) {
   return new Promise((resolve) => {
-    http
-      .get(url, (res) => {
-        const chunks = [];
-        res.on('data', (c) => chunks.push(c));
-        res.on('end', () => {
-          const raw = Buffer.concat(chunks).toString('utf8');
-          if (res.statusCode !== 200) {
-            resolve(false);
-            return;
-          }
-          try {
-            const j = JSON.parse(raw);
-            resolve(j && j.status === 'ok');
-          } catch {
-            resolve(false);
-          }
-        });
-      })
-      .on('error', () => resolve(false));
+    const req = http.get(url, (res) => {
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => {
+        const raw = Buffer.concat(chunks).toString('utf8');
+        if (res.statusCode !== 200) {
+          resolve(false);
+          return;
+        }
+        try {
+          const j = JSON.parse(raw);
+          resolve(j && j.status === 'ok');
+        } catch {
+          resolve(false);
+        }
+      });
+    });
+    req.setTimeout(3000, () => {
+      req.destroy();
+      resolve(false);
+    });
+    req.on('error', () => resolve(false));
   });
 }
 
+async function frontPingOkAnyHost() {
+  for (const host of frontHostCandidates()) {
+    if (await httpPingOk(frontPingUrl(host))) return { ok: true, host };
+  }
+  return { ok: false, host: null };
+}
+
 module.exports = defineConfig({
-  allowCypressEnv: false,
+  allowCypressEnv: true,
   e2e: {
-    // 127.0.0.1 évite qu’un autre service sur la machine écoute « localhost » (ex. outil IDE) et réponde à la place du proxy Express.
-    baseUrl: `http://127.0.0.1:${LOCAL_FRONT_PORT}`,
+    // Evite les timeouts intermittents de resolution localhost sous Electron en preferant l'IPv4 de la machine.
+    baseUrl: `http://${CYPRESS_FRONTEND_HOST}:${LOCAL_FRONT_PORT}${FRONT_BASE_PATH}`,
     supportFile: 'cypress/support/e2e.js',
     // Ré-exécution automatique des specs instables (infra / réseau) — 1 retry = 2 tentatives max
     retries: { runMode: 1, openMode: 0 },
@@ -117,13 +198,6 @@ module.exports = defineConfig({
       terminal: true,
     },
     setupNodeEvents(on, config) {
-      const e2eProfile = detectE2EProfile(config.baseUrl);
-      config.env = {
-        ...(config.env || {}),
-        E2E_PROFILE: e2eProfile,
-        E2E_INVENTORY_FILE:
-          e2eProfile === 'staging' ? 'services-inventory.staging.json' : 'services-inventory.json',
-      };
       on('task', {
         log(message) {
           console.log(message);
@@ -132,6 +206,15 @@ module.exports = defineConfig({
         checkServerDev() {
           const serverDevPath = path.resolve(__dirname, 'server.dev.js');
           return fs.existsSync(serverDevPath);
+        },
+        signE2EAccessToken({ userId = 1, isAdmin = true, ttlSec = 1800, secret } = {}) {
+          const signSecret =
+            String(secret || '').trim() || process.env.CYPRESS_E2E_SIGN_SECRET || process.env.JWT_SIGN_SECRET;
+          if (!signSecret) {
+            throw new Error('Missing JWT sign secret for signE2EAccessToken task.');
+          }
+          const now = Math.floor(Date.now() / 1000);
+          return signHs256Jwt({ userId, isAdmin, iat: now, exp: now + ttlSec }, signSecret);
         },
         /**
          * S’assure que le frontend hostinger répond sur le port HOSTINGER_FRONTEND_PORT (défaut 8082) avec /api/ping (Express server.prod.js).
@@ -151,7 +234,8 @@ module.exports = defineConfig({
           if (r.status !== 0) {
             throw new Error('e2e-ensure-build a échoué (sync .env + build alignés sur e2eServiceEndpoints.cjs).');
           }
-          if (await httpPingOk(FRONTEND_PROD_PING)) {
+          const upBefore = await frontPingOkAnyHost();
+          if (upBefore.ok) {
             return 'already-up';
           }
           const child = spawn('node', ['server.prod.js'], {
@@ -164,12 +248,13 @@ module.exports = defineConfig({
           const deadline = Date.now() + 60000;
           while (Date.now() < deadline) {
             await new Promise((r) => setTimeout(r, 400));
-            if (await httpPingOk(FRONTEND_PROD_PING)) {
+            const upAfter = await frontPingOkAnyHost();
+            if (upAfter.ok) {
               return 'started';
             }
           }
           throw new Error(
-            `Le frontend sur le port ${LOCAL_FRONT_PORT} (server.prod.js) ne répond pas à /api/ping après démarrage automatique.`
+            `Le frontend sur le port ${LOCAL_FRONT_PORT} (server.prod.js) ne répond pas à /api/ping après démarrage automatique (hôtes testés: ${frontHostCandidates().join(', ')}).`
           );
         },
         /**
@@ -177,18 +262,68 @@ module.exports = defineConfig({
          * Échec avec lsof sur les ports concernés (conflit IDE / autre service).
          */
         async assertE2EInfrastructure() {
+          if (String(process.env.CYPRESS_SKIP_E2E_INFRA_GATE || '').trim() === '1') {
+            return 'e2e-gate-skipped';
+          }
           const maxMs = parseInt(process.env.CYPRESS_E2E_GATE_MAX_MS || '180000', 10);
           const pollMs = parseInt(process.env.CYPRESS_E2E_GATE_POLL_MS || '2000', 10);
           await runInfrastructureGate({
-            profile: e2eProfile,
-            baseUrl: config.baseUrl,
             frontPort: LOCAL_FRONT_PORT,
             userPort: LOCAL_USER_PORT,
+            frontHost: CYPRESS_FRONTEND_HOST,
+            userHost: CYPRESS_USER_BACKEND_HOST,
             maxWaitMs: maxMs,
             pollMs,
             progressPrefix: 'E2E gate (Cypress)',
           });
           return 'e2e-ready';
+        },
+        async checkFrontPing() {
+          const url = frontApiUrl(CYPRESS_FRONTEND_HOST, '/api/ping');
+          const { status, body } = await httpJsonRequest(url, { method: 'GET', timeoutMs: 8000 });
+          if (status !== 200 || !body || body.status !== 'ok') {
+            throw new Error(`Frontend ping invalide (${status})`);
+          }
+          return 'ok';
+        },
+        async checkHomeConfigViaFront() {
+          const url = frontApiUrl(CYPRESS_FRONTEND_HOST, '/api/home-config');
+          const attempts = 20;
+          for (let i = 1; i <= attempts; i += 1) {
+            try {
+              const { status, body } = await httpJsonRequest(url, { method: 'GET', timeoutMs: 8000 });
+              if (status === 200 && Array.isArray(body?.categories) && body.categories.length === 3) {
+                return 'ok';
+              }
+            } catch {
+              // keep retrying while backend stack finishes booting
+            }
+            await new Promise((r) => setTimeout(r, 1500));
+          }
+          throw new Error('home-config indisponible via front après retries');
+        },
+        async loginByApiNode({
+          email,
+          password,
+          timeoutMs = 12000,
+          attempts = 6,
+          delayMs = 1500,
+        } = {}) {
+          if (!email || !password) {
+            throw new Error('loginByApiNode requires email and password.');
+          }
+          const doLogin = async () => {
+            const { status, body } = await httpJsonRequest(frontApiUrl(CYPRESS_FRONTEND_HOST, '/api/users/login'), {
+              method: 'POST',
+              jsonBody: { email, password },
+              timeoutMs,
+            });
+            if (status !== 200 || !body || !body.accessToken) {
+              throw new Error(`loginByApiNode invalid response status=${status}`);
+            }
+            return body.accessToken;
+          };
+          return retryAsync(doLogin, { attempts, delayMs });
         },
         /** Upload multipart fiable (Buffer) — évite la corruption binaire de cy.request sur gros fichiers. */
         writeHomeConfigBaselineFile({ baseline }) {
@@ -210,22 +345,17 @@ module.exports = defineConfig({
           } catch (e) {
             throw new Error(`Baseline JSON invalide: ${e.message}`);
           }
-          const normalizedBase = String(baseUrl || config.baseUrl || `http://127.0.0.1:${LOCAL_FRONT_PORT}`).replace(/\/$/, '');
-          const isStaging = e2eProfile === 'staging';
-          const loginUrl = isStaging
-            ? `${normalizedBase}/api/users/login`
-            : `http://127.0.0.1:${LOCAL_USER_PORT}/api/users/login`;
+          const loginUrl = `http://127.0.0.1:${LOCAL_USER_PORT}/api/users/login`;
           const { body: loginBody } = await httpJsonRequest(loginUrl, {
             method: 'POST',
             jsonBody: { email: adminEmail, password: adminPassword },
           });
           const token = loginBody && loginBody.accessToken;
           if (!token) throw new Error('Login admin E2E sans accessToken');
-          const homeConfigBase = (() => {
-            if (isStaging) return normalizedBase;
-            return (process.env.CYPRESS_HOME_CONFIG_ORIGIN || 'http://127.0.0.1:7020').replace(/\/$/, '');
-          })();
-          const putUrl = isStaging ? `${homeConfigBase}/api/home-config` : `${homeConfigBase}/api/home-config`;
+          // PUT direct sur home-config (7020) : évite tout souci de proxy / en-têtes ; JWT doit matcher JWT_SIGN_SECRET du backend home-config.
+          const homeConfigBase =
+            process.env.CYPRESS_HOME_CONFIG_ORIGIN || 'http://127.0.0.1:7020';
+          const putUrl = `${homeConfigBase.replace(/\/$/, '')}/api/home-config`;
           await httpJsonRequest(putUrl, {
             method: 'PUT',
             headers: { Authorization: `Bearer ${token}` },
@@ -246,28 +376,21 @@ module.exports = defineConfig({
           const {
             token,
             messageId,
+            format,
             fieldName,
             fileName,
             mimeType,
             fixtureRelativePath,
             port,
             apiPath,
-            absoluteUrl,
           } = opts;
           const root = path.resolve(__dirname);
           const abs = path.join(root, fixtureRelativePath);
           if (!fs.existsSync(abs)) {
             throw new Error(`Fixture introuvable: ${fixtureRelativePath}`);
           }
-          const url = (() => {
-            if (absoluteUrl) {
-              return String(absoluteUrl);
-            }
-            if (!port || !apiPath) {
-              throw new Error('presseMediaUpload: fournir absoluteUrl ou (port + apiPath).');
-            }
-            return `http://127.0.0.1:${port}${apiPath.startsWith('/') ? apiPath : `/${apiPath}`}`;
-          })();
+          const pathOnly = apiPath.startsWith('/') ? apiPath : `/${apiPath}`;
+          const url = `http://127.0.0.1:${port}${pathOnly}`;
           const formField = `${fieldName}=@${abs};filename=${fileName}${mimeType ? `;type=${mimeType}` : ''}`;
           const tmpOut = path.join(os.tmpdir(), `cypress-upload-${Date.now()}-${Math.random().toString(36).slice(2, 9)}.bin`);
           try {
@@ -288,6 +411,7 @@ module.exports = defineConfig({
                 `Authorization: Bearer ${token}`,
                 '-F',
                 `messageId=${String(messageId)}`,
+                ...(format ? ['-F', `format=${String(format)}`] : []),
                 '-F',
                 formField,
               ],

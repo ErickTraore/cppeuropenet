@@ -12,9 +12,12 @@ services:
     environment:
       NODE_ENV: ${COMPOSE_USER_BACKEND_NODE_ENV}
       ALLOWED_ORIGINS: ${COMPOSE_USER_BACKEND_ALLOWED_ORIGINS}
+      ALLOW_PRIVATE_LAN_ORIGINS: ${COMPOSE_USER_BACKEND_ALLOW_PRIVATE_LAN_ORIGINS:-false}
     command: ["sh", "./wait-for-db.sh", "node", "server.prod.js"]
     depends_on:
       - mariadb
+    ports:
+      - "${COMPOSE_USER_BACKEND_HOST_PORT}:7001"
     restart: always
     networks:
       - app-network
@@ -40,7 +43,7 @@ services:
     image: node:20
     working_dir: /usr/src/app
     volumes:
-      - ./home-config-backend:/usr/src/app
+      - ../contabo-cppeurope/home-config-backend:/usr/src/app
       - home-config-data:/data
       # better-sqlite3 doit être compilé dans l’image Node du conteneur, pas depuis l’hôte
       - home-config-node-modules:/usr/src/app/node_modules
@@ -52,7 +55,7 @@ services:
       DATA_DIR: ${COMPOSE_HOME_CONFIG_DATA_DIR}
       MAX_UPLOAD_MB: ${COMPOSE_HOME_CONFIG_MAX_UPLOAD_MB}
       ALLOWED_ORIGINS: ${COMPOSE_HOME_CONFIG_ALLOWED_ORIGINS}
-    command: bash -c "npm install && node server.js"
+    command: bash -c "npm install && node server.prod.js"
     networks:
       - app-network
     restart: always

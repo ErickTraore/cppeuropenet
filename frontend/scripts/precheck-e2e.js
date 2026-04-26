@@ -4,8 +4,26 @@
  * Même logique que la tâche Cypress assertE2EInfrastructure (e2eInfrastructure.cjs), délai max plus court.
  */
 const { runInfrastructureGate } = require('./e2eInfrastructure.cjs');
+const { spawnSync } = require('child_process');
+
+function runInventoryBoundaryGuard() {
+  const r = spawnSync('node', ['scripts/enforce-services-inventory.js'], {
+    cwd: pathResolveFrontendRoot(),
+    stdio: 'inherit',
+    shell: false,
+    env: { ...process.env },
+  });
+  if (r.status !== 0) {
+    throw new Error('Le garde-fou inventory a détecté des ports hardcodés hors services-inventory.json.');
+  }
+}
+
+function pathResolveFrontendRoot() {
+  return require('path').resolve(__dirname, '..');
+}
 
 async function main() {
+  runInventoryBoundaryGuard();
   const maxWaitMs = parseInt(process.env.E2E_PRECHECK_MAX_MS || '90000', 10);
   const pollMs = parseInt(process.env.E2E_PRECHECK_POLL_MS || '2000', 10);
   const maxSec = Math.round(maxWaitMs / 1000);

@@ -1,6 +1,15 @@
 // Cypress E2E support
 require('./commands');
 
+before(() => {
+  // Expensive infra checks once per spec file (not before each test) to keep local runs fast.
+  if (Cypress.env('SKIP_E2E_READY_CHECKS')) return;
+  cy.task('ensureFrontendProd8082');
+  cy.task('assertE2EInfrastructure').should('eq', 'e2e-ready');
+  cy.task('checkFrontPing').should('eq', 'ok');
+  cy.task('checkHomeConfigViaFront').should('eq', 'ok');
+});
+
 // Prevent Cypress from failing tests on uncaught exceptions in the app
 Cypress.on('uncaught:exception', (err, runnable) => {
   // Log the error to help debugging unexpected app crashes

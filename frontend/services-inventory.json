@@ -17,7 +17,7 @@
     "name": "presseGenerale-backend",
     "path": "contabo-cppeurope/presseGenerale-backend",
     "start": "node server.prod.js",
-    "port": 7012,
+    "port": 17012,
     "docker": true
   },
   {
@@ -46,7 +46,7 @@
     "name": "user-backend (hostinger)",
     "path": "hostinger-cppeurope/user-backend",
     "start": "node server.prod.js",
-    "port": 7001,
+    "port": 17001,
     "docker": true
   },
   {

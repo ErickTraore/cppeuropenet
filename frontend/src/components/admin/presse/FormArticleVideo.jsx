@@ -36,6 +36,7 @@ const FormArticleVideo = ({ presseFormat = 'article-video' }) => {
     const formData = new FormData();
     formData.append('video', file);
     formData.append('messageId', String(messageId));
+    formData.append('format', String(presseFormat || 'article-video'));
 
     // Toujours recalculer au clic (pas de constante en tête de module) : même origine /api/media → proxy 8082/8092 → :7004
     const base = getPresseGeneraleMediaApiBase().replace(/\/$/, '');

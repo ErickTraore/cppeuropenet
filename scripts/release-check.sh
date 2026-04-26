@@ -28,8 +28,6 @@ run_local() {
 
 run_staging() {
   log "Gate staging: full E2E suite (${STAGING_BASE_URL})"
-  cd "$ROOT"
-  ./scripts/staging-compose.sh up -d
   cd "$FRONTEND_DIR"
   npm run cypress:run:new -- --config "baseUrl=${STAGING_BASE_URL}"
 }
@@ -37,11 +35,11 @@ run_staging() {
 run_prod_smoke() {
   log "Gate prod-smoke: critical auth smoke (${PROD_BASE_URL})"
   cd "$FRONTEND_DIR"
-  CYPRESS_E2E_PROFILE=staging npx cypress run --config-file cypress.config.cjs --config baseUrl=${PROD_BASE_URL} --spec "cypress/e2e/new/006_initUsersE2E.cy.js,cypress/e2e/new/009_loginFormE2E.cy.js"
+  npm run cypress:run:new -- --config "baseUrl=${PROD_BASE_URL}" --spec "cypress/e2e/new/new-0-start/006_initUsersE2E.cy.js,cypress/e2e/new/new-0-start/009_loginFormE2E.cy.js"
 }
 
-run_ci_smoke() {
-  log "Gate ci-smoke: CRA server + spec 027"
+run_ci_e2e_full() {
+  log "Gate ci-e2e-full: CRA server + ALL cypress/e2e/new specs"
   cd "$FRONTEND_DIR"
   npm ci
   npm start &
@@ -49,13 +47,13 @@ run_ci_smoke() {
   env -u ELECTRON_RUN_AS_NODE npx cypress run \
     --config-file cypress.config.cjs \
     --config baseUrl=http://localhost:3000 \
-    --spec "cypress/e2e/new/027_cppeuropeNet.cy.js"
+    --spec "cypress/e2e/new/**/*.cy.js"
 }
 
 usage() {
   cat <<'EOF'
 Usage:
-  ./scripts/release-check.sh [local|staging|prod-smoke|ci-smoke|all]
+  ./scripts/release-check.sh [local|staging|prod-smoke|ci-smoke|ci-e2e-full|all]
 
 Environment overrides:
   STAGING_BASE_URL=http://93.127.167.134:9085
@@ -73,8 +71,8 @@ case "$MODE" in
   prod-smoke)
     run_prod_smoke
     ;;
-  ci-smoke)
-    run_ci_smoke
+  ci-smoke|ci-e2e-full)
+    run_ci_e2e_full
     ;;
   all)
     run_local

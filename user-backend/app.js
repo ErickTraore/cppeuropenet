@@ -24,31 +24,60 @@ if (!process.env.ALLOWED_ORIGINS && process.env.REACT_APP_URL) {
 }
 
 const isDev = process.env.NODE_ENV !== 'production';
+const allowPrivateLanOrigins = String(process.env.ALLOW_PRIVATE_LAN_ORIGINS || '').toLowerCase() === 'true';
+const debugCors = String(process.env.DEBUG_CORS || '').toLowerCase() === 'true';
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
   .map(o => o.trim())
   .filter(o => o.length > 0);
 
-console.log('🌍 CORS allowedOrigins (user-backend) :', allowedOrigins);
+function isPrivateIPv4(hostname) {
+  if (!/^\d+\.\d+\.\d+\.\d+$/.test(hostname)) return false;
+  const parts = hostname.split('.').map((n) => parseInt(n, 10));
+  if (parts.length !== 4 || parts.some((n) => Number.isNaN(n) || n < 0 || n > 255)) return false;
+  if (parts[0] === 10) return true;
+  if (parts[0] === 192 && parts[1] === 168) return true;
+  if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+  return false;
+}
+
+function isAllowedPrivateLanOrigin(origin) {
+  if (!allowPrivateLanOrigins || !origin) return false;
+  try {
+    const parsed = new URL(origin);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return false;
+    return isPrivateIPv4(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+if (debugCors) {
+  console.log('🌍 CORS allowedOrigins (user-backend) :', allowedOrigins);
+}
+
+function corsDebug(...args) {
+  if (debugCors) console.log(...args);
+}
 
 // 🔐 CORS
 app.use((req, res, next) => {
-  console.log('--- CORS DEBUG ---');
-  console.log('Method:', req.method);
-  console.log('Origin header:', req.headers.origin);
-  console.log('URL:', req.originalUrl);
+  corsDebug('--- CORS DEBUG ---');
+  corsDebug('Method:', req.method);
+  corsDebug('Origin header:', req.headers.origin);
+  corsDebug('URL:', req.originalUrl);
   cors({
     origin: function (origin, callback) {
-      console.log('CORS check for origin:', origin);
+      corsDebug('CORS check for origin:', origin);
       if (!origin) {
-        console.log('CORS: Pas d\'origin, requête acceptée');
+        corsDebug('CORS: Pas d\'origin, requête acceptée');
         return callback(null, true);
       }
-      if (isDev || allowedOrigins.includes(origin)) {
-        console.log('CORS: Origin autorisé');
+      if (isDev || allowedOrigins.includes(origin) || isAllowedPrivateLanOrigin(origin)) {
+        corsDebug('CORS: Origin autorisé');
         return callback(null, true);
       }
-      console.log('CORS: Origin refusé');
+      corsDebug('CORS: Origin refusé');
       return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
@@ -56,7 +85,7 @@ app.use((req, res, next) => {
     allowedHeaders: ['Content-Type','Authorization']
   })(req, res, function(err) {
     if (err) {
-      console.log('CORS ERROR:', err.message);
+      corsDebug('CORS ERROR:', err.message);
       return res.status(403).json({ error: 'CORS error: Origin not allowed', details: err.message });
     }
     next();
@@ -64,7 +93,6 @@ app.use((req, res, next) => {
 });
 
 // S'assurer que toutes les routes acceptent OPTIONS
-app.options('*', cors());
 app.options('*', cors());
 
 // 📦 Middlewares

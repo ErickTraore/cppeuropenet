@@ -2,7 +2,8 @@
 /**
  * Monte tous les conteneurs Docker nécessaires aux E2E, à partir de services-inventory.json.
  * - Chaque dossier contabo-cppeurope/* avec docker-compose : `docker compose up -d` (ou localComposeDev si défini).
- * - Hostinger user-backend / front : un seul `docker compose up -d` à la racine hostinger-cppeurope (compose parent).
+ * - Hostinger : `docker compose --env-file docker-compose.e2e.env` (ports figés Cypress) ou
+ *   repli sur docker-compose.production.env si absent.
  *
  * Prérequis : Docker Desktop démarré. Cwd d'exécution : n'importe où (chemins absolus).
  */
@@ -29,6 +30,24 @@ function runShell(cwd, command, args) {
 
 function dockerComposeUp(cwd, extraArgs = []) {
   runShell(cwd, 'docker', ['compose', 'up', '-d', ...extraArgs]);
+}
+
+/** Hostinger : ports stables via docker-compose.e2e.env (versionné) ou docker-compose.production.env. */
+function dockerComposeUpHostinger() {
+  const e2eEnv = path.join(HOSTINGER_ROOT, 'docker-compose.e2e.env');
+  const prodEnv = path.join(HOSTINGER_ROOT, 'docker-compose.production.env');
+  const envFile = [e2eEnv, prodEnv].find((f) => fs.existsSync(f));
+  const args = ['compose'];
+  if (envFile) {
+    args.push('--env-file', envFile);
+    console.log(`   [e2e-docker-up] --env-file ${path.basename(envFile)} (ports stables)`);
+  } else {
+    console.warn(
+      '   [e2e-docker-up] Aucun docker-compose.e2e.env ni docker-compose.production.env : risque de ports non interpolés.',
+    );
+  }
+  args.push('-f', 'docker-compose.yml', 'up', '-d');
+  runShell(HOSTINGER_ROOT, 'docker', args);
 }
 
 function main() {
@@ -109,7 +128,7 @@ function main() {
     console.log(
       `\n[e2e-docker-up] Étape ${stepIndex}/${totalComposeSteps} — Hostinger (user-backend + front + DB)\n   ${HOSTINGER_ROOT}`,
     );
-    dockerComposeUp(HOSTINGER_ROOT);
+    dockerComposeUpHostinger();
   } else if (needHostingerStack) {
     console.warn(`[e2e-docker-up] docker-compose.yml Hostinger introuvable: ${hostingerCompose}`);
   }

@@ -18,6 +18,13 @@ const PRESSE_MEDIA_LOC_PORT = parseInt(process.env.PRESSE_MEDIA_LOC_PORT || '700
 const PRESSE_LOCALE_MSG_HOST = process.env.PRESSE_LOCALE_MSG_HOST || '127.0.0.1';
 const PRESSE_LOCALE_MSG_PORT = parseInt(process.env.PRESSE_LOCALE_MSG_PORT || '7005', 10);
 
+const PRESSE_GENERALE_MSG_HOST =
+  process.env.PRESSE_GENERALE_MSG_HOST || process.env.PRESSE_GENERALE_HOST || '127.0.0.1';
+const PRESSE_GENERALE_MSG_PORT = parseInt(
+  process.env.PRESSE_GENERALE_MSG_PORT || process.env.PRESSE_GENERALE_PORT || '17012',
+  10
+);
+
 const HOME_CONFIG_HOST = process.env.HOME_CONFIG_HOST || '127.0.0.1';
 const HOME_CONFIG_PORT = parseInt(process.env.HOME_CONFIG_PORT || '7020', 10);
 
@@ -183,6 +190,23 @@ app.use((req, res, next) => {
   proxyRawPath(req, res, PRESSE_LOCALE_MSG_HOST, PRESSE_LOCALE_MSG_PORT, target, { omitOrigin: true });
 });
 
+// Messages presse générale :
+// - /api/presse-generale/* (legacy/front) -> backend /api/*
+// - /api/messages* (frontend historique) -> backend /api/messages*
+app.use((req, res, next) => {
+  const o = req.originalUrl || '';
+  if (o.startsWith('/api/presse-generale')) {
+    const target = o.replace(/^\/api\/presse-generale/, '/api');
+    proxyRawPath(req, res, PRESSE_GENERALE_MSG_HOST, PRESSE_GENERALE_MSG_PORT, target, { omitOrigin: true });
+    return;
+  }
+  if (o === '/api/messages' || o.startsWith('/api/messages/')) {
+    proxyRawPath(req, res, PRESSE_GENERALE_MSG_HOST, PRESSE_GENERALE_MSG_PORT, o, { omitOrigin: true });
+    return;
+  }
+  next();
+});
+
 app.use((req, res, next) => {
   const o = req.originalUrl || '';
   if (!o.startsWith('/api/home-config')) return next();
@@ -211,6 +235,7 @@ app.listen(PORT, () => {
     `  → Proxy /api/media-locale + /api/uploads-locale → http://${PRESSE_MEDIA_LOC_HOST}:${PRESSE_MEDIA_LOC_PORT}`
   );
   console.log(`  → Proxy /api/user-media-profile → http://${MEDIA_HOST}:${MEDIA_PORT}`);
+  console.log(`  → Proxy /api/presse-generale + /api/messages → http://${PRESSE_GENERALE_MSG_HOST}:${PRESSE_GENERALE_MSG_PORT}`);
   console.log(`  → Proxy /api/presse-locale → http://${PRESSE_LOCALE_MSG_HOST}:${PRESSE_LOCALE_MSG_PORT}`);
   console.log(`  → Proxy /api/home-config → http://${HOME_CONFIG_HOST}:${HOME_CONFIG_PORT}`);
   console.log(`  → Proxy /api/users → http://${USER_BACKEND_HOST}:${USER_BACKEND_PORT}`);

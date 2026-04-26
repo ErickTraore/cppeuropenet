@@ -9,25 +9,12 @@ const isBrowser = () => typeof window !== 'undefined';
 
 const isLocalhost = () => isBrowser() && ['localhost', '127.0.0.1'].includes(window.location.hostname);
 
-const isLoopbackHost = (hostname) => ['localhost', '127.0.0.1'].includes(String(hostname || '').toLowerCase());
-
-const internalDockerHosts = new Set([
-  'user-backend',
-  'presse-generale-backend',
-  'presse-locale-backend',
-  'home-config-backend',
-  'user-media-profile-backend',
-  'media-backend',
-  'media-gle-backend',
-  'media-locale-backend',
-]);
-
 // When running Cypress (or any browser) on the host machine, Docker service names like
 // "user-backend" are not resolvable. In that case we map to localhost ports where
 // the services are published.
 const dockerHostToLocalhost = {
-  'user-backend': 'http://localhost:7001',
-  'presse-generale-backend': 'http://localhost:7006',
+  'user-backend': 'http://localhost:17001',
+  'presse-generale-backend': 'http://localhost:17012',
   // Add more mappings if you expose other services on localhost
 };
 
@@ -61,23 +48,15 @@ export const resolveApiUrl = (envUrl, fallback, cypressEnvKey) => {
     }
   }
 
-  // REACT_APP_* = `/api/...` (sans host) : même origine que la page (nginx / staging).
-  // Sinon tryParseUrl échoue et on retombe sur le fallback `http://localhost:7001/...`
-  // → fetch navigateur vers localhost au lieu du proxy (login UI cassé hors local).
-  if (typeof envUrl === 'string' && envUrl.startsWith('/') && isBrowser()) {
-    return new URL(envUrl, window.location.origin).href;
+  // Relative URLs (e.g. '/api/users') are valid proxy paths — return as-is so the browser
+  // resolves them against window.location.origin (the frontend proxy).
+  if (envUrl && envUrl.startsWith('/')) {
+    return envUrl;
   }
 
   const url = tryParseUrl(envUrl) || tryParseUrl(fallback);
   if (!url) {
     return envUrl || fallback || '';
-  }
-
-  if (isBrowser() && !isLocalhost()) {
-    const host = String(url.hostname || '').toLowerCase();
-    if (isLoopbackHost(host) || internalDockerHosts.has(host)) {
-      return new URL(`${url.pathname}${url.search}`, window.location.origin).href;
-    }
   }
 
   if (isLocalhost()) {

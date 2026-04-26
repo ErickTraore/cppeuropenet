@@ -4,16 +4,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPresseLocale } from '../../actions/presseLocaleActions';
 import { getPresseLocaleApiRoot, getPresseLocaleMediaApiRoot } from '../../utils/presseLocaleApi';
+import { getAllowedTypesFromTitle, getManagerMediaNoteKind } from '../../utils/managerMediaNote';
 import './PresseLocaleManager.css';
-
-const getAllowedTypesFromTitle = (title = '') => {
-  const normalized = String(title).toUpperCase();
-  if (normalized.includes('TITRE+PHOTO+VID')) return { image: true, video: true };
-  if (normalized.includes('TITRE+PHOTO')) return { image: true, video: false };
-  if (normalized.includes('TITRE+VIDEO') || normalized.includes('TITRE+VID')) return { image: false, video: true };
-  if (normalized.includes('TITRE')) return { image: false, video: false };
-  return null;
-};
 
 const PresseGeneraleManager = () => {
   const dispatch = useDispatch();
@@ -199,30 +191,42 @@ const PresseGeneraleManager = () => {
 
                   <div className="media-upload-section">
                     <h4>🔄 Remplacer les médias :</h4>
+                    {(() => {
+                      const mediaList = Array.isArray(messageMedia[msg.id]) ? messageMedia[msg.id] : [];
+                      const noteKind = getManagerMediaNoteKind(msg.title || '', mediaList);
 
-                    {messageMedia[msg.id]?.some(m => m.type === 'image') && (
-                      <div className="media-upload">
-                        <label>📷 Remplacer l'image :</label>
-                        <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} />
-                        {imageFile && <p className="file-count">✅ {imageFile.name} sélectionnée</p>}
-                      </div>
-                    )}
+                      return (
+                        <>
+                          {mediaList.some((m) => (m.type || '').toLowerCase() === 'image') && (
+                            <div className="media-upload">
+                              <label>📷 Remplacer l'image :</label>
+                              <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} />
+                              {imageFile && <p className="file-count">✅ {imageFile.name} sélectionnée</p>}
+                            </div>
+                          )}
 
-                    {messageMedia[msg.id]?.some(m => m.type === 'video') && (
-                      <div className="media-upload">
-                        <label>🎥 Remplacer la vidéo :</label>
-                        <input type="file" accept="video/*" onChange={(e) => setVideoFile(e.target.files[0])} />
-                        {videoFile && <p className="file-count">✅ {videoFile.name} sélectionnée</p>}
-                      </div>
-                    )}
+                          {mediaList.some((m) => (m.type || '').toLowerCase() === 'video') && (
+                            <div className="media-upload">
+                              <label>🎥 Remplacer la vidéo :</label>
+                              <input type="file" accept="video/*" onChange={(e) => setVideoFile(e.target.files[0])} />
+                              {videoFile && <p className="file-count">✅ {videoFile.name} sélectionnée</p>}
+                            </div>
+                          )}
 
-                    {(!messageMedia[msg.id] || messageMedia[msg.id].length === 0) && (
-                      <p className="media-note">📝 Cet article est de type "Texte seul" - aucun média ne peut être ajouté.</p>
-                    )}
+                          {noteKind === 'text-only' && (
+                            <p className="media-note">📝 Cet article est de type "Texte seul" - aucun média ne peut être ajouté.</p>
+                          )}
 
-                    {messageMedia[msg.id] && messageMedia[msg.id].length > 0 && (
-                      <p className="media-note">💡 Vous pouvez uniquement remplacer les médias existants. Le type d'article ne peut pas être modifié.</p>
-                    )}
+                          {noteKind === 'mismatch' && (
+                            <p className="media-note">⚠️ Incohérence: ce format attend un média, mais aucun média n'a été chargé pour cet article.</p>
+                          )}
+
+                          {noteKind === 'replace' && (
+                            <p className="media-note">💡 Vous pouvez uniquement remplacer les médias existants. Le type d'article ne peut pas être modifié.</p>
+                          )}
+                        </>
+                      );
+                    })()}
                   </div>
 
                   <div className="form-actions">

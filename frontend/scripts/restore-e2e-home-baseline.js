@@ -6,10 +6,12 @@
 const fs = require('fs');
 const http = require('http');
 const path = require('path');
+const { E2E_ENV } = require('../cypress/support/e2eServiceEndpoints.cjs');
 
 const BASELINE = path.join(__dirname, '..', 'cypress', '.e2e-home-config-baseline.json');
 const BASE_URL = process.env.E2E_BASE_URL || 'http://127.0.0.1:8082';
-const LOGIN_URL = process.env.E2E_LOGIN_URL || 'http://127.0.0.1:7001/api/users/login';
+const LOGIN_URL =
+  process.env.E2E_LOGIN_URL || `http://127.0.0.1:${E2E_ENV.E2E_PORT_USER_BACKEND}/api/users/login`;
 const ADMIN = {
   email: process.env.E2E_ADMIN_EMAIL || 'admin2026@cppeurope.net',
   password: process.env.E2E_ADMIN_PASSWORD || 'admin2026!',

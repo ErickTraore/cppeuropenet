@@ -128,18 +128,22 @@ module.exports = {
                     .then((results) => {
                         const failed = results.filter((r) => !r.ok);
                         if (failed.length) {
-                            console.error("❌ [BACKEND] Création médias Contabo échec :", failed);
-                            return res.status(500).json({ error: "02-Profil créé mais échec création des médias (Contabo)" });
+                            console.warn("⚠️ [BACKEND] Création médias Contabo partiellement en échec (inscription maintenue) :", failed);
+                            return done(null, newUser);
                         }
                         console.log("✅ [BACKEND] Médias par défaut créés pour profil :", profile.id);
-                        done(newUser);
+                        done(null, newUser);
                     })
                     .catch(err => {
-                        console.error("❌ [BACKEND] Erreur création médias :", err.message);
-                        return res.status(500).json({ error: "02-Profil créé mais échec création des médias" });
+                        console.warn("⚠️ [BACKEND] Erreur création médias (inscription maintenue) :", err.message);
+                        return done(null, newUser);
                     });
             }
-        ], function (newUser) {
+        ], function (err, newUser) {
+            if (err) {
+                console.error("❌ [BACKEND] Échec final de l'inscription :", err.message || err);
+                return res.status(500).json({ error: "Échec final de l'inscription" });
+            }
             if (newUser) {
                 console.log("🎉 [BACKEND] Inscription réussie pour utilisateur :", newUser.id);
                 return res.status(201).json({
@@ -191,7 +195,8 @@ module.exports = {
                                     redirectUrl: '/#home'
                                 };
 
-                                console.log('🟢 refreshToken inclus dans la réponse JSON :', responsePayload.refreshToken);
+                                // Evite les logs volumineux/sensibles sur chaque login pendant les runs E2E.
+                                console.log('🟢 login OK userId=', userFound.id);
 
                                 return res.status(200).json(responsePayload);
                             } else {
@@ -397,7 +402,7 @@ module.exports = {
     getUserAll: async function (req, res) {
         try {
             const users = await User.findAll();
-            console.log('Utilisateurs trouvés:', users);
+            console.log('Utilisateurs trouvés (count):', users.length);
             res.status(200).json(users);
         } catch (error) {
             console.error('Erreur getUserAll:', error);

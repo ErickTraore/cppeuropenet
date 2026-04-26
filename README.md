@@ -1,3 +1,82 @@
+Prerequis frontend:
+- Toujours lancer les tests E2E via la commande `e2e:cold` du package frontend.
+- Ne pas lancer directement des commandes Cypress isolees pour valider un run complet.
+- Utiliser un fichier d'environnement dedie Cypress (`frontend/.env.cypress`) au lieu des `.env` React.
+
+`e2e:cold` automatise: reset compose, relance de la stack, build frontend E2E, precheck, puis execution Cypress.
+
+## Procedure Developpeur (Execution)
+
+Objectif: executer les tests E2E de facon reproductible, rigoureuse et stable.
+
+1. Verifier le dossier de travail (terminal)
+
+```bash
+cd /Users/traore/Documents/sites/sitesEnProductions.v1
+pwd
+ls
+```
+
+Verification attendue:
+- `pwd` retourne `/Users/traore/Documents/sites/sitesEnProductions.v1`.
+- `ls` affiche au minimum `contabo-cppeurope` et `hostinger-cppeurope`.
+
+2. Reinitialiser les 2 VPS (option rigoureuse recommandee)
+
+```bash
+bash hostinger-cppeurope/scripts/e2e-reset-two-vps.sh
+```
+
+3. Lancer la campagne E2E complete (commande de reference)
+
+```bash
+npm --prefix hostinger-cppeurope/frontend run e2e:cold
+```
+
+Pour preparer le fichier d'environnement Cypress local (une seule fois):
+
+```bash
+cp hostinger-cppeurope/frontend/.env.cypress.example hostinger-cppeurope/frontend/.env.cypress
+```
+
+Pour staging (fichier dedie):
+
+```bash
+cp hostinger-cppeurope/frontend/.env.cypress.staging.example hostinger-cppeurope/frontend/.env.cypress.staging
+CYPRESS_ENV_FILE=.env.cypress.staging npm --prefix hostinger-cppeurope/frontend run e2e:cold
+```
+
+Important pour staging:
+- Renseigner `HOSTINGER_FRONTEND_BASE_PATH=/cppeurope-staging` dans le fichier Cypress staging.
+- Avec ce prefixe, Cypress cible automatiquement `.../cppeurope-staging/api/...`.
+
+4. Valider la stabilite (3 passes consecutives)
+
+```bash
+npm --prefix hostinger-cppeurope/frontend run e2e:new:stable
+```
+
+5. Accepter ou rejeter le run
+
+Critere PASS:
+- Chaque commande se termine avec un code de sortie `0`.
+- Cypress termine avec `All specs passed`.
+- Resultat final de stabilite: `ALL_GREEN`.
+
+Critere FAIL:
+- Un code de sortie non nul a n'importe quelle etape.
+- Absence de `All specs passed` dans le run Cypress.
+
+6. Procedure en cas d'echec
+
+- Relancer d'abord l'etape 2 (reset), puis l'etape 3 (`e2e:cold`).
+- Considerer le run invalide tant que la commande ne se termine pas avec code `0`.
+- Corriger a partir de la premiere erreur deterministe, pas a partir des logs de progression Docker.
+
+
+#############################################################################################################################################
+
+
 # HOSTINGER-CPPEUROPE.NET - Site Web PPA-CI
 
 Site web de l'association HOSTINGER-CPPEUROPE.NET avec gestion de presse, authentification et profils utilisateurs.
@@ -47,10 +126,14 @@ cd hostinger-cppeurope
 
 # Les fichiers `.env` / `.env.*` sont versionnés (staging) : après clone, les ajuster si besoin.
 
-# Lancer avec Docker
-docker compose up -d
+# Ports fixes pour Cypress / E2E (recommandé en local) :
+npm run e2e:compose up -d
+# (utilise docker-compose.e2e.env : front 8082, MariaDB 3314, nginx 8085, adminer 8083)
 
-# Le site sera accessible sur http://localhost
+# Ou prod avec variables dans docker-compose.production.env :
+./scripts/production-compose.sh up -d
+
+# Front (build dans le conteneur) : http://localhost:8082
 ```
 
 ## 📁 Structure du projet
@@ -326,3 +409,4 @@ Association Les Premices (PPA-CI)
 **Déploiement manuel :** même séquence que le CD sans passer par GitHub ; après `git clone` / `git pull`, vérifier que les **`.env.*` versionnés** dans `contabo-cppeurope/…` sont bien présents sur le disque du VPS avant **`docker compose up`**.
 
 **Objectifs typiques :** (1) secrets GitHub (`DEPLOY_HOST`, etc.) pour que **Deploy** passe l’étape SSH ; (2) arborescence Contabo alignée avec le dépôt pour que **`docker compose up`** trouve les **fichiers d’environnement** attendus.
+

@@ -6,13 +6,12 @@ import { resolveApiUrl } from './apiUrls';
  */
 export function getProfileMediaApiBase() {
   if (typeof window !== 'undefined') {
-    const h = window.location.hostname;
-    if (h === 'localhost' || h === '127.0.0.1') {
-      try {
-        return new URL('/api/user-media-profile', window.location.origin).href.replace(/\/$/, '');
-      } catch {
-        /* ignore */
-      }
+    try {
+      // Always prefer same-origin in browser to avoid CORS issues when host is
+      // an IPv4 LAN address (ex: 10.x.x.x under Cypress/Electron).
+      return new URL('/api/user-media-profile', window.location.origin).href.replace(/\/$/, '');
+    } catch {
+      /* ignore */
     }
   }
   return resolveApiUrl(

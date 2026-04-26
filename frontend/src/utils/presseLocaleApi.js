@@ -8,13 +8,11 @@ const FALLBACK_MEDIA_LOCALE = 'http://localhost:7008/api/media-locale';
  */
 export function getPresseLocaleMediaApiRoot() {
   if (typeof window !== 'undefined') {
-    const h = window.location.hostname;
-    if (h === 'localhost' || h === '127.0.0.1') {
-      try {
-        return new URL('/api/media-locale', window.location.origin).href.replace(/\/$/, '');
-      } catch {
-        /* ignore */
-      }
+    try {
+      // Keep Consulter aligned with the active frontend host/port (localhost, 127.0.0.1, LAN IP, etc.).
+      return new URL('/api/media-locale', window.location.origin).href.replace(/\/$/, '');
+    } catch {
+      /* ignore */
     }
   }
 
@@ -36,13 +34,10 @@ export function getPresseLocaleMediaApiRoot() {
 /** Base messages presse locale (CRUD). En local, même origine : proxy /api/presse-locale → presseLocale-backend. */
 export function getPresseLocaleApiRoot() {
   if (typeof window !== 'undefined') {
-    const h = window.location.hostname;
-    if (h === 'localhost' || h === '127.0.0.1') {
-      try {
-        return new URL('/api/presse-locale', window.location.origin).href.replace(/\/$/, '');
-      } catch {
-        /* ignore */
-      }
+    try {
+      return new URL('/api/presse-locale', window.location.origin).href.replace(/\/$/, '');
+    } catch {
+      /* ignore */
     }
   }
   return resolveApiUrl(
