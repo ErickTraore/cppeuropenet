@@ -100,7 +100,7 @@ jobs:
       - name: Run production smoke gate
         working-directory: frontend
         run: |
-          npm ci
+          npm install
           cd ..
           ./scripts/release-check.sh prod-smoke
 
