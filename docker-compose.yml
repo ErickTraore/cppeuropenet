@@ -13,7 +13,7 @@ services:
       NODE_ENV: ${COMPOSE_USER_BACKEND_NODE_ENV}
       ALLOWED_ORIGINS: ${COMPOSE_USER_BACKEND_ALLOWED_ORIGINS}
       ALLOW_PRIVATE_LAN_ORIGINS: ${COMPOSE_USER_BACKEND_ALLOW_PRIVATE_LAN_ORIGINS:-false}
-    command: ["sh", "./wait-for-db.sh", "node", "server.prod.js"]
+    command: bash -c "npm install && sh ./wait-for-db.sh node server.prod.js"
     depends_on:
       - mariadb
     ports:
