@@ -3,10 +3,8 @@
 module.exports = {
   up: async (queryInterface, Sequelize) => {
     const hasTable = async (name) => {
-      const [results] = await queryInterface.sequelize.query(
-        `SHOW TABLES LIKE '${name}'`
-      );
-      return Array.isArray(results) && results.length > 0;
+      const tables = await queryInterface.showAllTables();
+      return tables.includes(name);
     };
 
     if (await hasTable('Messages')) {
@@ -18,10 +16,8 @@ module.exports = {
 
   down: async (queryInterface, Sequelize) => {
     const hasTable = async (name) => {
-      const [results] = await queryInterface.sequelize.query(
-        `SHOW TABLES LIKE '${name}'`
-      );
-      return Array.isArray(results) && results.length > 0;
+      const tables = await queryInterface.showAllTables();
+      return tables.includes(name);
     };
 
     if (await hasTable('PresseGle')) {
