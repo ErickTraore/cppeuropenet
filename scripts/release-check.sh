@@ -35,6 +35,31 @@ run_staging() {
 run_prod_smoke() {
   log "Gate prod-smoke: critical auth smoke (${PROD_BASE_URL})"
   cd "$FRONTEND_DIR"
+
+  log "Attente API users (${PROD_BASE_URL}/api/users/login) avant Cypress"
+  local code="000"
+  local attempts=40
+  local i
+  for ((i=1; i<=attempts; i++)); do
+    code="$(curl -sS -o /tmp/prod-smoke-users-login.txt -w "%{http_code}" \
+      -H "Content-Type: application/json" \
+      -X POST "${PROD_BASE_URL}/api/users/login" \
+      -d '{"email":"healthcheck@cppeurope.net","password":"healthcheck"}' || true)"
+
+    if [[ "$code" != "502" && "$code" != "000" ]]; then
+      log "API users prête (HTTP ${code})"
+      break
+    fi
+
+    if [[ "$i" -eq "$attempts" ]]; then
+      log "API users indisponible après ${attempts} tentatives (dernier code: ${code})"
+      head -c 300 /tmp/prod-smoke-users-login.txt || true
+      return 1
+    fi
+
+    sleep 5
+  done
+
   env -u ELECTRON_RUN_AS_NODE BROWSERSLIST_IGNORE_OLD_DATA=1 \
     CYPRESS_E2E_PROFILE=staging \
     npx cypress run \
