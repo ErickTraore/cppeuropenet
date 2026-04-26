@@ -221,6 +221,9 @@ module.exports = defineConfig({
          * Lance un build si nécessaire, puis démarre le serveur en arrière-plan si le port est vide.
          */
         async ensureFrontendProd8082() {
+          if (String(process.env.CYPRESS_SKIP_E2E_READY_CHECKS || '').trim() === '1') {
+            return 'skipped-by-env';
+          }
           const frontendRoot = path.resolve(__dirname);
           const serverProd = path.join(frontendRoot, 'server.prod.js');
           if (!fs.existsSync(serverProd)) {
