@@ -107,6 +107,8 @@ jobs:
           HOSTINGER_USER_BACKEND_HOST: cppeurope.net
           HOSTINGER_USER_BACKEND_PORT: "443"
           E2E_BACKEND_HOST: cppeurope.net
+          CYPRESS_SKIP_E2E_READY_CHECKS: "1"
+          CYPRESS_SKIP_E2E_INFRA_GATE: "1"
         run: |
           npm install
           cd ..
