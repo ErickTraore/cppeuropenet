@@ -2,12 +2,18 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    // Renommer la table Media en MediaPresseGle
-    await queryInterface.renameTable('Media', 'MediaPresseGle');
+    const tables = await queryInterface.showAllTables();
+
+    if (tables.includes('Media') && !tables.includes('MediaPresseGle')) {
+      await queryInterface.renameTable('Media', 'MediaPresseGle');
+    }
   },
 
   down: async (queryInterface, Sequelize) => {
-    // Revenir en arrière : renommer MediaPresseGle en Media
-    await queryInterface.renameTable('MediaPresseGle', 'Media');
+    const tables = await queryInterface.showAllTables();
+
+    if (tables.includes('MediaPresseGle') && !tables.includes('Media')) {
+      await queryInterface.renameTable('MediaPresseGle', 'Media');
+    }
   }
 };
