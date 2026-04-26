@@ -2,6 +2,7 @@
 process.env.NODE_OPTIONS = "";
 const { defineConfig } = require('cypress');
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -63,13 +64,17 @@ function frontHostCandidates() {
   return [...new Set(candidates)];
 }
 
+function frontProtocol() {
+  return LOCAL_FRONT_PORT === 443 ? 'https' : 'http';
+}
+
 function frontPingUrl(host) {
-  return `http://${host}:${LOCAL_FRONT_PORT}${FRONT_BASE_PATH}/api/ping`;
+  return `${frontProtocol()}://${host}:${LOCAL_FRONT_PORT}${FRONT_BASE_PATH}/api/ping`;
 }
 
 function frontApiUrl(host, apiPath) {
   const pathOnly = apiPath.startsWith('/') ? apiPath : `/${apiPath}`;
-  return `http://${host}:${LOCAL_FRONT_PORT}${FRONT_BASE_PATH}${pathOnly}`;
+  return `${frontProtocol()}://${host}:${LOCAL_FRONT_PORT}${FRONT_BASE_PATH}${pathOnly}`;
 }
 
 function signHs256Jwt(payload, secret) {
@@ -142,7 +147,8 @@ async function retryAsync(fn, { attempts = 6, delayMs = 1500 } = {}) {
 /** True si le front est bien server.prod.js (JSON { status: 'ok' }), pas un SPA statique qui renvoie index.html en 200. */
 function httpPingOk(url) {
   return new Promise((resolve) => {
-    const req = http.get(url, (res) => {
+    const lib = url.startsWith('https://') ? https : http;
+    const req = lib.get(url, (res) => {
       const chunks = [];
       res.on('data', (c) => chunks.push(c));
       res.on('end', () => {
