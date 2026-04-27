@@ -159,6 +159,14 @@ jobs:
         working-directory: frontend
         env:
           STAGING_BASE_URL: http://93.127.167.134:9085
+          # Vars used by cypress.config.cjs to build baseUrl on Linux CI (no darwin IPv4 fallback)
+          HOSTINGER_FRONTEND_HOST: "93.127.167.134"
+          HOSTINGER_FRONTEND_PORT: "9085"
+          HOSTINGER_FRONTEND_BASE_PATH: ""
+          HOSTINGER_USER_BACKEND_HOST: "93.127.167.134"
+          HOSTINGER_USER_BACKEND_PORT: "9085"
+          E2E_BACKEND_HOST: "93.127.167.134"
+          E2E_PORT_USER_BACKEND: "9085"
         run: |
           npm install
           cd ..
