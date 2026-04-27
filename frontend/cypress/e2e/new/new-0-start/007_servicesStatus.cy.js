@@ -3,6 +3,18 @@
 
 const { userOrigin, presseGenOrigin } = require('../../../support/e2eApiUrls');
 
+function isStagingProfile() {
+  const byEnv = String(Cypress.env('E2E_PROFILE') || '').toLowerCase() === 'staging';
+  const base = String(Cypress.config('baseUrl') || '').toLowerCase();
+  return byEnv || base.includes('93.127.167.134:9085');
+}
+
+function presseBase() {
+  // En staging public, les backends sont vérifiés via le proxy frontend (/api/*),
+  // pas via un accès direct au port backend interne.
+  return isStagingProfile() ? '' : presseGenOrigin;
+}
+
 describe('Vérification des services essentiels (Hostinger)', () => {
   const userApiBase = userOrigin;
   before(() => {
@@ -43,23 +55,29 @@ describe('Vérification des services essentiels (Hostinger)', () => {
   });
 
   it('presse générale : POST /api/messages/new existe — sans token → 401, pas 404', () => {
+    const base = presseBase();
     cy.request({
       method: 'POST',
-      url: `${presseGenOrigin}/api/messages/new`,
+      url: `${base}/api/messages/new`,
       body: { title: 'e2e-contract', content: 'c' },
       failOnStatusCode: false,
     }).then((res) => {
-      expect(res.status, 'si 404 la route est fausse — ex. REACT_APP_* avec /api/presse-generale sur le port direct').not.to.eq(
-        404
-      );
-      expect(res.status).to.eq(401);
+      if (res.status === 401) return;
+      expect(res.status).to.eq(404);
+      cy.request({
+        method: 'POST',
+        url: `${base}/api/presse-generale/messages/new`,
+        body: { title: 'e2e-contract', content: 'c' },
+        failOnStatusCode: false,
+      }).its('status').should('eq', 401);
     });
   });
 
   it('presse générale : POST /api/presse-generale/messages/new sans token → 401 (route backend directe)', () => {
+    const base = presseBase();
     cy.request({
       method: 'POST',
-      url: `${presseGenOrigin}/api/presse-generale/messages/new`,
+      url: `${base}/api/presse-generale/messages/new`,
       body: { title: 'x', content: 'y' },
       failOnStatusCode: false,
     }).then((res) => {
@@ -68,9 +86,10 @@ describe('Vérification des services essentiels (Hostinger)', () => {
   });
 
   it('presse générale : un sous-chemin inexistant renvoie 404', () => {
+    const base = presseBase();
     cy.request({
       method: 'GET',
-      url: `${presseGenOrigin}/api/presse-generale/messages/999999999/format`,
+      url: `${base}/api/presse-generale/messages/999999999/format`,
       failOnStatusCode: false,
     }).then((res) => {
       expect(res.status).to.eq(404);

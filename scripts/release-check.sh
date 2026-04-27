@@ -30,7 +30,7 @@ run_staging() {
   log "Gate staging: full E2E suite (${STAGING_BASE_URL})"
   cd "$FRONTEND_DIR"
 
-  local staging_specs="${STAGING_CYPRESS_SPEC:-cypress/e2e/new/new-0-start/004_servicesInventory.cy.js,cypress/e2e/new/new-0-start/006_initUsersE2E.cy.js,cypress/e2e/new/new-0-start/007_initUsersE2E_2.cy.js,cypress/e2e/new/new-0-start/009_loginFormE2E.cy.js}"
+  local staging_specs="${STAGING_CYPRESS_SPEC:-cypress/e2e/new/new-0-start/004_servicesInventory.cy.js,cypress/e2e/new/new-0-start/006_initUsersE2E.cy.js,cypress/e2e/new/new-0-start/007_initUsersE2E_2.cy.js,cypress/e2e/new/new-0-start/007_servicesStatus.cy.js,cypress/e2e/new/new-0-start/009_loginFormE2E.cy.js}"
 
   log "Attente frontend staging (${STAGING_BASE_URL}) avant Cypress"
   local code="000"
@@ -60,7 +60,7 @@ run_staging() {
     npx cypress run \
       --config-file cypress.config.cjs \
       --config "baseUrl=${STAGING_BASE_URL}" \
-      --env "SKIP_E2E_READY_CHECKS=1,SKIP_E2E_INFRA_GATE=1" \
+      --env "SKIP_E2E_READY_CHECKS=1,SKIP_E2E_INFRA_GATE=1,E2E_PROFILE=staging" \
       --spec "${staging_specs}"
 }
 
