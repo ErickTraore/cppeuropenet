@@ -124,7 +124,6 @@ jobs:
              cd $(printf '%q' "$STAGING_DEPLOY_PATH")
              git fetch origin
              git reset --hard $(printf '%q' "origin/$GIT_REF")
-             bash ./deploy-with-tests.sh
              ./scripts/staging-compose.sh down
              ./scripts/staging-compose.sh up -d --build
              echo '-- Attente démarrage user-backend (max 30s)...'
