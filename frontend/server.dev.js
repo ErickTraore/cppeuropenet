@@ -20,6 +20,10 @@ const PRESSE_LOCALE_MSG_PORT = parseInt(process.env.PRESSE_LOCALE_MSG_PORT || '7
 
 const PRESSE_GENERALE_MSG_HOST = process.env.PRESSE_GENERALE_MSG_HOST || '127.0.0.1';
 const PRESSE_GENERALE_MSG_PORT = parseInt(process.env.PRESSE_GENERALE_MSG_PORT || '17012', 10);
+const CONTABO_PATH_PREFIX_RAW = String(process.env.CONTABO_PATH_PREFIX || '').trim();
+const CONTABO_PATH_PREFIX = CONTABO_PATH_PREFIX_RAW
+  ? `/${CONTABO_PATH_PREFIX_RAW.replace(/^\/+|\/+$/g, '')}`
+  : '';
 
 const HOME_CONFIG_HOST = process.env.HOME_CONFIG_HOST || '127.0.0.1';
 const HOME_CONFIG_PORT = parseInt(process.env.HOME_CONFIG_PORT || '7020', 10);
@@ -53,6 +57,12 @@ function proxyRawPath(req, res, hostname, port, targetPath, proxyOpts = {}) {
   req.pipe(p);
 }
 
+function withContaboPrefix(targetPath) {
+  if (!CONTABO_PATH_PREFIX) return targetPath;
+  if (!targetPath || targetPath === '/') return CONTABO_PATH_PREFIX;
+  return `${CONTABO_PATH_PREFIX}${targetPath.startsWith('/') ? targetPath : `/${targetPath}`}`;
+}
+
 /**
  * Les chemins /mediaprofile/* et /imagesprofile/* sont servis par userMediaProfile-backend (port 7017).
  * Le bundle React utilise des URLs same-origin (/mediaprofile/...) — sans proxy, le serveur (ex. :8082) renvoie 404
@@ -60,7 +70,7 @@ function proxyRawPath(req, res, hostname, port, targetPath, proxyOpts = {}) {
  */
 function proxyToMedia(req, res, pathPrefix) {
   const suffix = req.url && req.url.startsWith('/') ? req.url : `/${req.url || ''}`;
-  const targetPath = pathPrefix + suffix;
+  const targetPath = withContaboPrefix(pathPrefix + suffix);
 
   const options = {
     hostname: MEDIA_HOST,
@@ -89,10 +99,11 @@ function proxyToMedia(req, res, pathPrefix) {
 /** mediaGle-backend (presse générale : getMedia, uploadImage, fichiers /api/uploads/…) — même origine que le front. */
 function proxyToPresseMediaGle(req, res) {
   const pathOnly = (req.originalUrl || req.url || '').split('?')[0];
+  const targetPath = withContaboPrefix(pathOnly);
   const options = {
     hostname: PRESSE_MEDIA_GLE_HOST,
     port: PRESSE_MEDIA_GLE_PORT,
-    path: pathOnly,
+    path: targetPath,
     method: req.method,
     headers: {
       ...req.headers,
@@ -105,7 +116,7 @@ function proxyToPresseMediaGle(req, res) {
     proxRes.pipe(res);
   });
   p.on('error', (err) => {
-    console.error('[server.dev] proxy presse mediaGle', pathOnly, err.message);
+    console.error('[server.dev] proxy presse mediaGle', targetPath, err.message);
     if (!res.headersSent) {
       res.status(502).type('text/plain').send(`Presse media proxy error: ${err.message}`);
     }
@@ -116,10 +127,11 @@ function proxyToPresseMediaGle(req, res) {
 /** mediaLocale-backend (presse locale : getMedia, upload, /api/uploads-locale/…) — même origine que le front. */
 function proxyToPresseMediaLocale(req, res) {
   const pathOnly = (req.originalUrl || req.url || '').split('?')[0];
+  const targetPath = withContaboPrefix(pathOnly);
   const options = {
     hostname: PRESSE_MEDIA_LOC_HOST,
     port: PRESSE_MEDIA_LOC_PORT,
-    path: pathOnly,
+    path: targetPath,
     method: req.method,
     headers: {
       ...req.headers,
@@ -132,7 +144,7 @@ function proxyToPresseMediaLocale(req, res) {
     proxRes.pipe(res);
   });
   p.on('error', (err) => {
-    console.error('[server.dev] proxy presse mediaLocale', pathOnly, err.message);
+    console.error('[server.dev] proxy presse mediaLocale', targetPath, err.message);
     if (!res.headersSent) {
       res.status(502).type('text/plain').send(`Presse locale media proxy error: ${err.message}`);
     }
@@ -182,7 +194,7 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   const o = req.originalUrl || '';
   if (!o.startsWith('/api/presse-locale')) return next();
-  const target = o.replace(/^\/api\/presse-locale/, '/api');
+  const target = withContaboPrefix(o.replace(/^\/api\/presse-locale/, '/api'));
   proxyRawPath(req, res, PRESSE_LOCALE_MSG_HOST, PRESSE_LOCALE_MSG_PORT, target, { omitOrigin: true });
 });
 
@@ -192,12 +204,12 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   const o = req.originalUrl || '';
   if (o.startsWith('/api/presse-generale')) {
-    const target = o.replace(/^\/api\/presse-generale/, '/api');
+    const target = withContaboPrefix(o.replace(/^\/api\/presse-generale/, '/api'));
     proxyRawPath(req, res, PRESSE_GENERALE_MSG_HOST, PRESSE_GENERALE_MSG_PORT, target, { omitOrigin: true });
     return;
   }
   if (o === '/api/messages' || o.startsWith('/api/messages/')) {
-    proxyRawPath(req, res, PRESSE_GENERALE_MSG_HOST, PRESSE_GENERALE_MSG_PORT, o, { omitOrigin: true });
+    proxyRawPath(req, res, PRESSE_GENERALE_MSG_HOST, PRESSE_GENERALE_MSG_PORT, withContaboPrefix(o), { omitOrigin: true });
     return;
   }
   next();
