@@ -132,7 +132,7 @@ jobs:
                sleep 2
              done
              echo '-- Migrations Sequelize (from host)'
-             cd user-backend && npm install && npx sequelize-cli db:migrate --env production"
+             cd user-backend && npm install && DB_HOST=localhost DB_PORT=3315 npx sequelize-cli db:migrate --env production"
 
   staging-smoke:
     name: Post-deploy smoke (staging)
