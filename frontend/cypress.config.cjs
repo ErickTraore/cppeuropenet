@@ -354,16 +354,30 @@ module.exports = defineConfig({
           } catch (e) {
             throw new Error(`Baseline JSON invalide: ${e.message}`);
           }
-          const loginUrl = `http://127.0.0.1:${LOCAL_USER_PORT}/api/users/login`;
+          const normalizedBaseUrl = String(baseUrl || process.env.CYPRESS_BASE_URL || '').replace(/\/$/, '');
+          const envHomeConfigOrigin = String(process.env.CYPRESS_HOME_CONFIG_ORIGIN || '').trim();
+          const envHomeConfigIsLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(envHomeConfigOrigin);
+          let baseUrlIsRemote = false;
+          try {
+            const baseHost = new URL(normalizedBaseUrl).hostname;
+            baseUrlIsRemote = !!baseHost && baseHost !== 'localhost' && baseHost !== '127.0.0.1';
+          } catch {
+            baseUrlIsRemote = false;
+          }
+          const selectedOrigin =
+            envHomeConfigOrigin && !(baseUrlIsRemote && envHomeConfigIsLocal)
+              ? envHomeConfigOrigin
+              : normalizedBaseUrl;
+          const apiOrigin = selectedOrigin || `http://127.0.0.1:${LOCAL_USER_PORT}`;
+          const loginUrl = `${apiOrigin}/api/users/login`;
           const { body: loginBody } = await httpJsonRequest(loginUrl, {
             method: 'POST',
             jsonBody: { email: adminEmail, password: adminPassword },
           });
           const token = loginBody && loginBody.accessToken;
           if (!token) throw new Error('Login admin E2E sans accessToken');
-          // PUT direct sur home-config (7020) : évite tout souci de proxy / en-têtes ; JWT doit matcher JWT_SIGN_SECRET du backend home-config.
-          const homeConfigBase =
-            process.env.CYPRESS_HOME_CONFIG_ORIGIN || 'http://127.0.0.1:7020';
+          // Priorite a CYPRESS_HOME_CONFIG_ORIGIN; sinon on repasse par le meme origin que baseUrl.
+          const homeConfigBase = selectedOrigin || apiOrigin;
           const putUrl = `${homeConfigBase.replace(/\/$/, '')}/api/home-config`;
           await httpJsonRequest(putUrl, {
             method: 'PUT',
