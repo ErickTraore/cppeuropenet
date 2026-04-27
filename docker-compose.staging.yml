@@ -26,7 +26,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV}
       DB_HOST: ${DB_HOST}
-    command: bash -c "npm install --include=dev && sh ./wait-for-db.sh node server.prod.js"
+    command: bash -c "npm install && npm install -g sequelize-cli && sh ./wait-for-db.sh node server.prod.js"
     depends_on:
       - mariadb
     restart: always

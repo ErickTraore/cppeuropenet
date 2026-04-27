@@ -132,7 +132,7 @@ jobs:
                sleep 2
              done
              echo '-- Migrations Sequelize'
-             ./scripts/staging-compose.sh exec -T user-backend node node_modules/.bin/sequelize-cli db:migrate"
+             ./scripts/staging-compose.sh exec -T user-backend sequelize-cli db:migrate"
 
   staging-smoke:
     name: Post-deploy smoke (staging)
