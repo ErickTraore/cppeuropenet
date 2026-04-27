@@ -29,7 +29,35 @@ run_local() {
 run_staging() {
   log "Gate staging: full E2E suite (${STAGING_BASE_URL})"
   cd "$FRONTEND_DIR"
-  npm run cypress:run:new -- --config "baseUrl=${STAGING_BASE_URL}"
+
+  log "Attente frontend staging (${STAGING_BASE_URL}) avant Cypress"
+  local code="000"
+  local attempts=40
+  local i
+  for ((i=1; i<=attempts; i++)); do
+    code="$(curl -sS -o /tmp/staging-smoke-home.txt -w "%{http_code}" \
+      "${STAGING_BASE_URL}" || true)"
+
+    if [[ "$code" == "200" || "$code" == "301" || "$code" == "302" ]]; then
+      log "Frontend staging prêt (HTTP ${code})"
+      break
+    fi
+
+    if [[ "$i" -eq "$attempts" ]]; then
+      log "Frontend staging indisponible après ${attempts} tentatives (dernier code: ${code})"
+      head -c 300 /tmp/staging-smoke-home.txt || true
+      return 1
+    fi
+
+    sleep 5
+  done
+
+  npm run e2e:ensure-build
+  env -u ELECTRON_RUN_AS_NODE BROWSERSLIST_IGNORE_OLD_DATA=1 \
+    npx cypress run \
+      --config-file cypress.config.cjs \
+      --config "baseUrl=${STAGING_BASE_URL}" \
+      --spec "cypress/e2e/new/**/*.cy.js"
 }
 
 run_prod_smoke() {
