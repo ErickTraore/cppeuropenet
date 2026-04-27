@@ -1,0 +1,159 @@
+# CD Staging — déploiement UNIQUEMENT manuel (pull sur /var/www/cppeurope-staging).
+# Exige une confirmation textuelle pour limiter les erreurs et les déploiements non voulus.
+name: Deploy Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Saisir exactement DEPLOY-STAGING pour lancer le déploiement"
+        required: true
+        type: string
+      git_ref:
+        description: "Branche ou tag Git sur le serveur (ex. main)"
+        required: true
+        default: main
+        type: string
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: SSH — pull, validation frontend, Docker
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Vérifier la confirmation
+        run: |
+          if [ "${{ inputs.confirm }}" != "DEPLOY-STAGING" ]; then
+            echo "::error::Confirmation invalide. Tu dois saisir exactement DEPLOY-STAGING."
+            exit 1
+          fi
+
+      - name: Configurer la clé SSH
+        env:
+          STAGING_DEPLOY_SSH_KEY: ${{ secrets.STAGING_DEPLOY_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          KEYFILE="$HOME/.ssh/id_ed25519"
+          TMP=$(mktemp)
+          printf '%s\n' "$STAGING_DEPLOY_SSH_KEY" > "$TMP"
+          sed -i 's/\r$//' "$TMP"
+          # PEM : détecter BEGIN même si ligne vide / espace avant (évite faux « ni PEM ni base64 »).
+          # Base64 : une ligne ou plusieurs → tout coller sans espaces/retours puis decoder.
+          if grep -qE 'BEGIN (OPENSSH|RSA|EC) PRIVATE KEY' "$TMP"; then
+            mv "$TMP" "$KEYFILE"
+          else
+            B64=$(tr -d ' \n\r\t' < "$TMP")
+            if [ -z "$B64" ]; then
+              echo "::error::STAGING_DEPLOY_SSH_KEY est vide (environment staging)."
+              rm -f "$TMP"
+              exit 1
+            fi
+            # -i : ignore les caractères hors alphabet base64 (collage UI / copie depuis navigateur).
+            if ! printf '%s' "$B64" | base64 -d -i > "$KEYFILE" 2>/dev/null; then
+              echo "::error::STAGING_DEPLOY_SSH_KEY : une ligne base64 issue de : base64 -w0 ~/.ssh/github_deploy_cppeurope — ou clé PEM complète (BEGIN…END). Vérifie l'environment staging."
+              rm -f "$TMP"
+              exit 1
+            fi
+            rm -f "$TMP"
+          fi
+          chmod 600 "$KEYFILE"
+          if ! ssh-keygen -y -f "$KEYFILE" >/dev/null 2>&1; then
+            echo "::error::Clé privée illisible après écriture. Utilise une ligne base64 : base64 -w0 ~/.ssh/github_deploy_cppeurope"
+            exit 1
+          fi
+
+      - name: known_hosts
+        env:
+          STAGING_DEPLOY_HOST: ${{ secrets.STAGING_DEPLOY_HOST }}
+        run: ssh-keyscan -H "$STAGING_DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Déployer sur le VPS (staging)
+        env:
+          STAGING_DEPLOY_HOST: ${{ secrets.STAGING_DEPLOY_HOST }}
+          STAGING_DEPLOY_USER: ${{ secrets.STAGING_DEPLOY_USER }}
+          STAGING_DEPLOY_PATH: ${{ secrets.STAGING_DEPLOY_PATH }}
+          STAGING_BACKEND_ENV: ${{ secrets.STAGING_BACKEND_ENV }}
+          STAGING_COMPOSE_ENV: ${{ secrets.STAGING_COMPOSE_ENV }}
+          GIT_REF: ${{ inputs.git_ref }}
+        run: |
+          if [ -z "$STAGING_BACKEND_ENV" ]; then
+            echo "::error::Le secret STAGING_BACKEND_ENV est vide ou absent (environment staging)."
+            exit 1
+          fi
+          if [ -z "$STAGING_COMPOSE_ENV" ]; then
+            echo "::error::Le secret STAGING_COMPOSE_ENV est vide ou absent (environment staging)."
+            exit 1
+          fi
+
+          # Valider STAGING_BACKEND_ENV
+          TMP_BACKEND=$(mktemp)
+          printf '%s\n' "$STAGING_BACKEND_ENV" > "$TMP_BACKEND"
+          sed -i 's/\r$//' "$TMP_BACKEND"
+          if ! grep -qE '^[A-Z0-9_]+=' "$TMP_BACKEND"; then
+            echo "::error::STAGING_BACKEND_ENV ne ressemble pas à un fichier .env valide."
+            rm -f "$TMP_BACKEND"
+            exit 1
+          fi
+
+          # Valider STAGING_COMPOSE_ENV
+          TMP_COMPOSE=$(mktemp)
+          printf '%s\n' "$STAGING_COMPOSE_ENV" > "$TMP_COMPOSE"
+          sed -i 's/\r$//' "$TMP_COMPOSE"
+          if ! grep -qE '^[A-Z0-9_]+=' "$TMP_COMPOSE"; then
+            echo "::error::STAGING_COMPOSE_ENV ne ressemble pas à un fichier .env valide."
+            rm -f "$TMP_BACKEND" "$TMP_COMPOSE"
+            exit 1
+          fi
+
+          # SCP env files to VPS
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "${STAGING_DEPLOY_USER}@${STAGING_DEPLOY_HOST}" "mkdir -p $(printf '%q' "$STAGING_DEPLOY_PATH")"
+          scp -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "$TMP_BACKEND" "${STAGING_DEPLOY_USER}@${STAGING_DEPLOY_HOST}:$(printf '%q' "$STAGING_DEPLOY_PATH")/user-backend/.env.staging"
+          scp -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "$TMP_COMPOSE" "${STAGING_DEPLOY_USER}@${STAGING_DEPLOY_HOST}:$(printf '%q' "$STAGING_DEPLOY_PATH")/docker-compose.staging.env"
+          rm -f "$TMP_BACKEND" "$TMP_COMPOSE"
+
+          # SSH deploy
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "${STAGING_DEPLOY_USER}@${STAGING_DEPLOY_HOST}" \
+            "set -euo pipefail
+             cd $(printf '%q' "$STAGING_DEPLOY_PATH")
+             git fetch origin
+             git reset --hard $(printf '%q' "origin/$GIT_REF")
+             bash ./deploy-with-tests.sh
+             ./scripts/staging-compose.sh down
+             ./scripts/staging-compose.sh up -d --build
+             echo '-- Attente démarrage user-backend (max 30s)...'
+             for i in \$(seq 1 15); do
+               ./scripts/staging-compose.sh exec -T user-backend echo ok 2>/dev/null && break
+               sleep 2
+             done
+             echo '-- Migrations Sequelize'
+             ./scripts/staging-compose.sh exec -T user-backend npx sequelize-cli db:migrate"
+
+  staging-smoke:
+    name: Post-deploy smoke (staging)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: deploy
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Run staging smoke gate
+        working-directory: frontend
+        env:
+          STAGING_BASE_URL: http://93.127.167.134:9085
+        run: |
+          npm install
+          cd ..
+          ./scripts/release-check.sh staging
