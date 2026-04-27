@@ -1,10 +1,20 @@
 // user-backend/config/config.js
 const path = require('path');
 const dotenv = require('dotenv');
+const fs = require('fs');
 
 
 // Chargement dynamique du bon .env selon l'environnement
-const envFile = process.env.NODE_ENV === 'development' ? '.env.development' : '.env.production';
+// Priorité : .env.staging > .env.development/production selon NODE_ENV
+let envFile = '.env.production';
+if (process.env.NODE_ENV === 'development') {
+  envFile = '.env.development';
+}
+// Vérifier si .env.staging existe et l'utiliser en priorité (pour staging sur Hostinger)
+const stagingEnvPath = path.join(__dirname, '..', '.env.staging');
+if (fs.existsSync(stagingEnvPath)) {
+  envFile = '.env.staging';
+}
 dotenv.config({ path: path.join(__dirname, '..', envFile) });
 
 module.exports = {
