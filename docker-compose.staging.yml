@@ -48,30 +48,10 @@ services:
     networks:
       - app-network
 
-  home-config:
-    image: node:20
-    working_dir: /usr/src/app
-    volumes:
-      - ./home-config-backend:/usr/src/app
-      - home-config-staging-data:/data
-      - home-config-staging-node-modules:/usr/src/app/node_modules
-    env_file:
-      - ./user-backend/.env.staging
-    environment:
-      NODE_ENV: ${COMPOSE_HOME_CONFIG_NODE_ENV}
-      PORT: ${COMPOSE_HOME_CONFIG_PORT}
-      DATA_DIR: ${COMPOSE_HOME_CONFIG_DATA_DIR}
-      MAX_UPLOAD_MB: ${COMPOSE_HOME_CONFIG_MAX_UPLOAD_MB}
-    command: bash -c "npm install && node server.js"
-    networks:
-      - app-network
-    restart: always
-
   nginx:
     image: nginx:stable
     depends_on:
       - user-backend
-      - home-config
     ports:
       - "${COMPOSE_NGINX_HOST_PORT}:80"
     volumes:
@@ -109,7 +89,6 @@ services:
     command: bash -c "npm install && npm run build && node server.prod.js"
     depends_on:
       - user-backend
-      - home-config
     ports:
       - "${COMPOSE_FRONTEND_HOST_PORT}:3000"
     restart: always
@@ -130,8 +109,6 @@ services:
 
 volumes:
   cppeurope-staging-db-data:
-  home-config-staging-data:
-  home-config-staging-node-modules:
 
 networks:
   app-network:
