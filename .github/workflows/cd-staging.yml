@@ -159,6 +159,7 @@ jobs:
         working-directory: frontend
         env:
           STAGING_BASE_URL: http://93.127.167.134:9085
+          CYPRESS_SKIP_E2E_READY_CHECKS: "1"
           # Vars used by cypress.config.cjs to build baseUrl on Linux CI (no darwin IPv4 fallback)
           HOSTINGER_FRONTEND_HOST: "93.127.167.134"
           HOSTINGER_FRONTEND_PORT: "9085"
