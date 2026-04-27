@@ -6,8 +6,8 @@ describe('Presse Générale - Delete (option 1)', () => {
   const adminEmail = 'admin2026@cppeurope.net';
   const adminPassword = 'admin2026!';
   const titreRemplace = 'titre remplacé';
-  const { usersApi, presseGenMessages } = require('../../../support/e2eApiUrls');
-  const apiMessages = () => presseGenMessages;
+  const usersApi = '/api/users';
+  const apiMessages = () => '/api/messages';
 
   beforeEach(() => {
     cy.request({
@@ -39,7 +39,7 @@ describe('Presse Générale - Delete (option 1)', () => {
             : cy
                 .request({
                   method: 'POST',
-                  url: `${apiMessages()}new`,
+                  url: `${apiMessages()}/new`,
                   headers: {
                     Authorization: 'Bearer ' + token,
                     'Content-Type': 'application/json',
@@ -61,7 +61,7 @@ describe('Presse Générale - Delete (option 1)', () => {
           return cy
             .request({
               method: 'DELETE',
-              url: apiMessages() + target.id,
+              url: `${apiMessages()}/${target.id}`,
               headers: { Authorization: 'Bearer ' + token },
               failOnStatusCode: false,
             })
