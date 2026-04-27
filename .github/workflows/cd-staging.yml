@@ -131,8 +131,6 @@ jobs:
                ./scripts/staging-compose.sh exec -T user-backend echo ok 2>/dev/null && break
                sleep 2
              done
-             echo '-- Installations dépendances user-backend'
-             ./scripts/staging-compose.sh exec -T user-backend npm ci
              echo '-- Migrations Sequelize'
              ./scripts/staging-compose.sh exec -T user-backend npx sequelize-cli db:migrate"
 
