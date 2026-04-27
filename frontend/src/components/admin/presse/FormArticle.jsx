@@ -4,7 +4,11 @@
 import React, { useState } from 'react';
 import { resolveApiUrl } from '../../../utils/apiUrls';
 
-const PRESSE_GENERALE_API = resolveApiUrl(process.env.REACT_APP_PRESSE_GENERALE_API, '/api', 'PRESSE_GENERALE_API');
+const PRESSE_GENERALE_API = resolveApiUrl(
+  process.env.REACT_APP_PRESSE_GENERALE_API,
+  '/api/presse-generale',
+  'PRESSE_GENERALE_API'
+);
 
 const FormArticle = ({ presseFormat = 'article' }) => {
   const [newMessage, setNewMessage] = useState({

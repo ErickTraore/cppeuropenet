@@ -7,7 +7,7 @@ describe('Presse Générale - Delete (option 1)', () => {
   const adminPassword = 'admin2026!';
   const titreRemplace = 'titre remplacé';
   const usersApi = '/api/users';
-  const apiMessages = () => '/api/messages';
+  const apiMessages = () => '/api/presse-generale/messages';
 
   beforeEach(() => {
     cy.request({
