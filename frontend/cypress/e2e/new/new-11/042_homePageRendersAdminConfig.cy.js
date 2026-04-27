@@ -38,6 +38,14 @@ describe('Home config admin — fixtures cat. 1 à 3, enregistrer, trois images 
     if (!homeConfigApiAvailable) {
       return;
     }
+    const base = Cypress.config('baseUrl');
+    cy.task(
+      'restoreHomeConfigBaseline',
+      { baseUrl: base, adminEmail: 'admin2026@cppeurope.net', adminPassword: 'admin2026!' },
+      { timeout: 30000 },
+    ).then((result) => {
+      cy.log(`[042 teardown] restoreHomeConfigBaseline → ${result}`);
+    });
   });
 
   it('admin : upload fixture sur les 3 catégories, enregistrer, Home affiche et sert les 3 images', () => {
