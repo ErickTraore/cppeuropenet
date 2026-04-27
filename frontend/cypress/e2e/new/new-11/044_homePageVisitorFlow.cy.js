@@ -10,8 +10,10 @@ describe('Home — visiteur anonyme : chargement normal et état d\'erreur', () 
   it('visiteur anonyme — heroText visible, 3 onglets, onglet 0 actif par défaut, carte affichée', () => {
     cy.visit('/#home');
 
-    cy.get('.home-page__error').should('not.exist');
+    // Attendre que le chargement se termine (données ou erreur)
     cy.get('.home-page__loading', { timeout: 20000 }).should('not.exist');
+    // Une fois le chargement terminé, l'erreur ne doit pas exister
+    cy.get('.home-page__error').should('not.exist');
 
     cy.get('.home-page__hero p')
       .should('be.visible')
