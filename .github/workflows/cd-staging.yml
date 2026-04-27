@@ -126,13 +126,20 @@ jobs:
              git reset --hard $(printf '%q' "origin/$GIT_REF")
              ./scripts/staging-compose.sh down
              ./scripts/staging-compose.sh up -d --build
-             echo '-- Attente démarrage user-backend (max 30s)...'
-             for i in \$(seq 1 15); do
-               ./scripts/staging-compose.sh exec -T user-backend echo ok 2>/dev/null && break
+             echo '-- Attente MariaDB prêt + user créé (max 120s)...'
+             DB_PASS=\$(grep '^DB_PASSWORD=' user-backend/.env.staging | cut -d= -f2)
+             for i in \$(seq 1 60); do
+               if ./scripts/staging-compose.sh exec -T mariadb mariadb \
+                  -u staging_cpp_user -p\"\$DB_PASS\" \
+                  user_staging_cppeurope_v1 -e 'SELECT 1' >/dev/null 2>&1; then
+                 echo \"MariaDB + user prêt (tentative \$i)\"
+                 break
+               fi
+               [ \"\$i\" -eq 60 ] && echo '::warning::MariaDB pas prêt après 120s, on tente quand même'
                sleep 2
              done
              echo '-- Migrations Sequelize (from host)'
-             cd user-backend && npm install && DB_HOST=localhost DB_PORT=3315 npx sequelize-cli db:migrate --env production"
+             cd user-backend && npm install && DB_HOST=127.0.0.1 DB_PORT=3315 npx sequelize-cli db:migrate --env production"
 
   staging-smoke:
     name: Post-deploy smoke (staging)
