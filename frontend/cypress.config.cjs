@@ -395,6 +395,17 @@ module.exports = defineConfig({
           console.log('[cypress task] Home-config restaurée depuis baseline E2E.');
           return 'restored';
         },
+        async restoreHomeConfigBaselineSafe(args) {
+          try {
+            const result = await this.restoreHomeConfigBaseline(args);
+            return { ok: true, result };
+          } catch (err) {
+            return {
+              ok: false,
+              error: err && err.message ? err.message : String(err),
+            };
+          }
+        },
         async presseMediaUpload(opts) {
           const {
             token,

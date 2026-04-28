@@ -13,6 +13,7 @@ describe('Home config admin — fixtures cat. 1 à 3, enregistrer, trois images 
   const adminEmail = 'admin2026@cppeurope.net';
   const adminPassword = 'admin2026!';
   const fixtureImage = 'cypress/fixtures/e2e-home-cat1.png';
+  const isStagingProfile = String(Cypress.env('E2E_PROFILE') || '').toLowerCase() === 'staging';
 
   /** Copie mémoire pour logs ; la source de vérité teardown est le fichier baseline. */
   let homeBaselineSnapshot = null;
@@ -24,6 +25,9 @@ describe('Home config admin — fixtures cat. 1 à 3, enregistrer, trois images 
     cy.request({ url: `${base}/api/home-config`, failOnStatusCode: false }).then((res) => {
       homeConfigApiAvailable = res.status === 200;
       if (!homeConfigApiAvailable) {
+        if (isStagingProfile) {
+          throw new Error(`[042] Précheck home-config KO en staging: GET /api/home-config -> ${res.status}`);
+        }
         return;
       }
       homeBaselineSnapshot = {
@@ -40,11 +44,16 @@ describe('Home config admin — fixtures cat. 1 à 3, enregistrer, trois images 
     }
     const base = Cypress.config('baseUrl');
     cy.task(
-      'restoreHomeConfigBaseline',
+      'restoreHomeConfigBaselineSafe',
       { baseUrl: base, adminEmail: 'admin2026@cppeurope.net', adminPassword: 'admin2026!' },
       { timeout: 30000 },
-    ).then((result) => {
-      cy.log(`[042 teardown] restoreHomeConfigBaseline → ${result}`);
+    ).then((outcome) => {
+      if (outcome && outcome.ok) {
+        cy.log(`[042 teardown] restoreHomeConfigBaseline → ${outcome.result}`);
+        return;
+      }
+      const reason = outcome && outcome.error ? outcome.error : 'unknown restore error';
+      cy.log(`[042 teardown][warn] restoreHomeConfigBaseline skipped: ${reason}`);
     });
   });
 
@@ -53,7 +62,7 @@ describe('Home config admin — fixtures cat. 1 à 3, enregistrer, trois images 
     const uploadedUrls = [];
 
     if (!homeConfigApiAvailable) {
-      cy.log('API home-config indisponible, test contourné pour éviter faux négatif infra.');
+      cy.log('API home-config indisponible hors staging: test contourné pour éviter faux négatif infra.');
       cy.loginByUi(adminEmail, adminPassword);
       cy.get('div.App.authenticated', { timeout: 30000 }).should('exist');
       return;
