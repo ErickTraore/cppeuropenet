@@ -1,0 +1,205 @@
+name: Deploy Staging Orchestrated
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Saisir exactement DEPLOY-STAGING-ORCH pour lancer le déploiement orchestré"
+        required: true
+        type: string
+      git_ref:
+        description: "Branche ou tag Git sur les serveurs (ex. main)"
+        required: true
+        default: main
+        type: string
+
+concurrency:
+  group: deploy-staging-orchestrated
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-multi-vps:
+    name: Deploy Hostinger + Contabo (staging)
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 60
+    steps:
+      - name: Vérifier la confirmation
+        run: |
+          if [ "${{ inputs.confirm }}" != "DEPLOY-STAGING-ORCH" ]; then
+            echo "::error::Confirmation invalide. Tu dois saisir exactement DEPLOY-STAGING-ORCH."
+            exit 1
+          fi
+
+      - name: Configurer la clé SSH
+        env:
+          STAGING_DEPLOY_SSH_KEY: ${{ secrets.STAGING_DEPLOY_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          KEYFILE="$HOME/.ssh/id_ed25519"
+          TMP=$(mktemp)
+          printf '%s\n' "$STAGING_DEPLOY_SSH_KEY" > "$TMP"
+          sed -i 's/\r$//' "$TMP"
+
+          if grep -qE 'BEGIN (OPENSSH|RSA|EC) PRIVATE KEY' "$TMP"; then
+            mv "$TMP" "$KEYFILE"
+          else
+            B64=$(tr -d ' \n\r\t' < "$TMP")
+            if [ -z "$B64" ]; then
+              echo "::error::STAGING_DEPLOY_SSH_KEY est vide (environment staging)."
+              rm -f "$TMP"
+              exit 1
+            fi
+            if ! printf '%s' "$B64" | base64 -d -i > "$KEYFILE" 2>/dev/null; then
+              echo "::error::STAGING_DEPLOY_SSH_KEY invalide. Fournir base64 -w0 ~/.ssh/github_deploy_cppeurope ou une clé PEM complète."
+              rm -f "$TMP"
+              exit 1
+            fi
+            rm -f "$TMP"
+          fi
+
+          chmod 600 "$KEYFILE"
+          if ! ssh-keygen -y -f "$KEYFILE" >/dev/null 2>&1; then
+            echo "::error::Clé privée illisible après écriture."
+            exit 1
+          fi
+
+      - name: known_hosts (Hostinger + Contabo)
+        env:
+          STAGING_DEPLOY_HOST: ${{ secrets.STAGING_DEPLOY_HOST }}
+          STAGING_CONTABO_HOST: ${{ secrets.STAGING_CONTABO_HOST }}
+        run: |
+          if [ -z "$STAGING_DEPLOY_HOST" ] || [ -z "$STAGING_CONTABO_HOST" ]; then
+            echo "::error::Secrets STAGING_DEPLOY_HOST / STAGING_CONTABO_HOST requis dans l'environment staging."
+            exit 1
+          fi
+          ssh-keyscan -H "$STAGING_DEPLOY_HOST" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "$STAGING_CONTABO_HOST" >> ~/.ssh/known_hosts
+
+      - name: Déployer Contabo staging
+        env:
+          STAGING_CONTABO_HOST: ${{ secrets.STAGING_CONTABO_HOST }}
+          STAGING_CONTABO_USER: ${{ secrets.STAGING_CONTABO_USER }}
+          STAGING_CONTABO_PATH: ${{ secrets.STAGING_CONTABO_PATH }}
+          GIT_REF: ${{ inputs.git_ref }}
+        run: |
+          if [ -z "$STAGING_CONTABO_USER" ] || [ -z "$STAGING_CONTABO_PATH" ]; then
+            echo "::error::Secrets STAGING_CONTABO_USER / STAGING_CONTABO_PATH requis dans l'environment staging."
+            exit 1
+          fi
+
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "${STAGING_CONTABO_USER}@${STAGING_CONTABO_HOST}" \
+            "set -euo pipefail
+             cd $(printf '%q' "$STAGING_CONTABO_PATH")
+             git fetch origin
+             git reset --hard $(printf '%q' "origin/$GIT_REF")
+
+             cd mediaGle-backend
+             docker compose --env-file docker-compose.staging.env --env-file .env.compose-staging -f docker-compose.staging.yml -p media-staging-gle up -d --build
+
+             cd ../staging-compose-media-locale-ump
+             docker compose --env-file docker-compose.staging.env --env-file .env.compose -f docker-compose.yml -p staging-ml-ump up -d --build
+
+             cd ../presseLocale-backend
+             docker compose --env-file docker-compose.staging.env --env-file .env.compose-staging-pl -f docker-compose.staging.yml -p staging-presse-locale up -d --build
+
+             cd ../presseGenerale-backend
+             docker compose --env-file docker-compose.staging.env --env-file .env.compose-staging -f docker-compose.staging.yml -p staging-presse-generale up -d --build
+
+             cd ../home-config-backend
+             docker compose --env-file docker-compose.production.env -f docker-compose.yml up -d --force-recreate home-config-backend
+
+             echo '-- Vérification conteneurs Contabo (staging/proxy)'
+             docker ps --format '{{.Names}}\t{{.Status}}' | grep -E 'media-staging-gle|staging-ml-ump|staging-presse-locale|staging-presse-generale|home-config-backend-home-config-backend'"
+
+      - name: Déployer Hostinger staging
+        env:
+          STAGING_DEPLOY_HOST: ${{ secrets.STAGING_DEPLOY_HOST }}
+          STAGING_DEPLOY_USER: ${{ secrets.STAGING_DEPLOY_USER }}
+          STAGING_DEPLOY_PATH: ${{ secrets.STAGING_DEPLOY_PATH }}
+          STAGING_BACKEND_ENV: ${{ secrets.STAGING_BACKEND_ENV }}
+          STAGING_COMPOSE_ENV: ${{ secrets.STAGING_COMPOSE_ENV }}
+          GIT_REF: ${{ inputs.git_ref }}
+        run: |
+          if [ -z "$STAGING_BACKEND_ENV" ] || [ -z "$STAGING_COMPOSE_ENV" ]; then
+            echo "::error::Secrets STAGING_BACKEND_ENV / STAGING_COMPOSE_ENV requis dans l'environment staging."
+            exit 1
+          fi
+
+          TMP_BACKEND=$(mktemp)
+          printf '%s\n' "$STAGING_BACKEND_ENV" > "$TMP_BACKEND"
+          sed -i 's/\r$//' "$TMP_BACKEND"
+          if ! grep -qE '^[A-Z0-9_]+=' "$TMP_BACKEND"; then
+            echo "::error::STAGING_BACKEND_ENV ne ressemble pas à un fichier .env valide."
+            rm -f "$TMP_BACKEND"
+            exit 1
+          fi
+
+          TMP_COMPOSE=$(mktemp)
+          printf '%s\n' "$STAGING_COMPOSE_ENV" > "$TMP_COMPOSE"
+          sed -i 's/\r$//' "$TMP_COMPOSE"
+          if ! grep -qE '^[A-Z0-9_]+=' "$TMP_COMPOSE"; then
+            echo "::error::STAGING_COMPOSE_ENV ne ressemble pas à un fichier .env valide."
+            rm -f "$TMP_BACKEND" "$TMP_COMPOSE"
+            exit 1
+          fi
+
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "${STAGING_DEPLOY_USER}@${STAGING_DEPLOY_HOST}" "mkdir -p $(printf '%q' "$STAGING_DEPLOY_PATH")"
+          scp -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "$TMP_BACKEND" "${STAGING_DEPLOY_USER}@${STAGING_DEPLOY_HOST}:$(printf '%q' "$STAGING_DEPLOY_PATH")/user-backend/.env.staging"
+          scp -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "$TMP_COMPOSE" "${STAGING_DEPLOY_USER}@${STAGING_DEPLOY_HOST}:$(printf '%q' "$STAGING_DEPLOY_PATH")/docker-compose.staging.env"
+          rm -f "$TMP_BACKEND" "$TMP_COMPOSE"
+
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "${STAGING_DEPLOY_USER}@${STAGING_DEPLOY_HOST}" \
+            "set -euo pipefail
+             cd $(printf '%q' "$STAGING_DEPLOY_PATH")
+             git fetch origin
+             git reset --hard $(printf '%q' "origin/$GIT_REF")
+             ./scripts/staging-compose.sh down
+             ./scripts/staging-compose.sh up -d --build
+             echo '-- Attente MariaDB prêt + user créé (max 120s)...'
+             DB_PASS=\$(grep '^DB_PASSWORD=' user-backend/.env.staging | cut -d= -f2)
+             for i in \$(seq 1 60); do
+               if ./scripts/staging-compose.sh exec -T mariadb mariadb -u staging_cpp_user -p\"\$DB_PASS\" user_staging_cppeurope_v1 -e 'SELECT 1' >/dev/null 2>&1; then
+                 echo \"MariaDB + user prêt (tentative \$i)\"
+                 break
+               fi
+               [ \"\$i\" -eq 60 ] && echo '::warning::MariaDB pas prêt après 120s, on tente quand même'
+               sleep 2
+             done
+             cd user-backend
+             npm install
+             DB_HOST=127.0.0.1 DB_PORT=3315 npx sequelize-cli db:migrate --env production"
+
+  staging-smoke:
+    name: Post-deploy smoke (staging)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: deploy-multi-vps
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Run staging smoke gate
+        working-directory: frontend
+        env:
+          STAGING_BASE_URL: http://93.127.167.134:9085
+          CYPRESS_SKIP_E2E_READY_CHECKS: "1"
+          HOSTINGER_FRONTEND_HOST: "93.127.167.134"
+          HOSTINGER_FRONTEND_PORT: "9085"
+          HOSTINGER_FRONTEND_BASE_PATH: ""
+          HOSTINGER_USER_BACKEND_HOST: "93.127.167.134"
+          HOSTINGER_USER_BACKEND_PORT: "9085"
+          E2E_BACKEND_HOST: "93.127.167.134"
+          E2E_PORT_USER_BACKEND: "9085"
+        run: |
+          npm install
+          cd ..
+          ./scripts/release-check.sh staging
