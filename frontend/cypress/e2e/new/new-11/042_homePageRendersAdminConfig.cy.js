@@ -80,16 +80,16 @@ describe('Home config admin — fixtures cat. 1 à 3, enregistrer, trois images 
       cy.get(`#home-cat-${i}-label`).should('be.visible').invoke('val').should('not.be.empty');
     });
 
-    cy.intercept('POST', '**/api/home-config/upload').as('homeConfigUpload');
-
     [0, 1, 2].forEach((i) => {
-      cy.get('.admin-home-config__cat').eq(i).find('input[type=file]').selectFile(fixtureImage, { force: true });
-      cy.wait('@homeConfigUpload', { timeout: 60000 }).then((inter) => {
-        expect(inter.response?.statusCode, `upload catégorie ${i + 1} doit réussir`).to.be.oneOf([200, 201]);
-        const url = inter.response?.body?.url;
+      cy.task('uploadHomeConfigImageCurl', {
+        baseUrl: base,
+        fixtureRelativePath: fixtureImage,
+        mimeType: 'image/png',
+      }).then((payload) => {
+        const url = payload && payload.url;
         expect(url, `upload catégorie ${i + 1} retourne body.url`).to.match(/^\/api\/home-config\/media\/.+/);
         uploadedUrls[i] = url;
-        cy.get(`#home-cat-${i}-url`, { timeout: 20000 }).should('be.visible').should('have.value', url);
+        cy.get(`#home-cat-${i}-url`, { timeout: 20000 }).clear().type(url).should('have.value', url);
       });
     });
 
@@ -119,6 +119,11 @@ describe('Home config admin — fixtures cat. 1 à 3, enregistrer, trois images 
           .should((src) => {
             expect(src.includes(fileNames[i]), `vignette ${i + 1} src=${src} fichier=${fileNames[i]}`).to.be.true;
           });
+        cy.get('.home-page__cat-thumb')
+          .eq(i)
+          .should(($img) => {
+            expect($img[0].naturalWidth, `vignette ${i + 1} décodable`).to.be.greaterThan(0);
+          });
       });
 
       cy.get('.home-page__cat-btn').eq(1).click();
@@ -127,6 +132,9 @@ describe('Home config admin — fixtures cat. 1 à 3, enregistrer, trois images 
         .should((src) => {
           expect(src.includes(fileNames[1]), `carte cat2 src=${src}`).to.be.true;
         });
+      cy.get('.home-page__card-img').should(($img) => {
+        expect($img[0].naturalWidth, 'carte cat2 décodable').to.be.greaterThan(0);
+      });
 
       cy.get('.home-page__cat-btn').eq(2).click();
       cy.get('.home-page__card-img')
@@ -134,6 +142,9 @@ describe('Home config admin — fixtures cat. 1 à 3, enregistrer, trois images 
         .should((src) => {
           expect(src.includes(fileNames[2]), `carte cat3 src=${src}`).to.be.true;
         });
+      cy.get('.home-page__card-img').should(($img) => {
+        expect($img[0].naturalWidth, 'carte cat3 décodable').to.be.greaterThan(0);
+      });
 
       cy.get('.home-page__cat-btn').eq(0).click();
       cy.get('.home-page__card-img')
@@ -141,12 +152,16 @@ describe('Home config admin — fixtures cat. 1 à 3, enregistrer, trois images 
         .should((src) => {
           expect(src.includes(fileNames[0]), `carte cat1 src=${src}`).to.be.true;
         });
+      cy.get('.home-page__card-img').should(($img) => {
+        expect($img[0].naturalWidth, 'carte cat1 décodable').to.be.greaterThan(0);
+      });
 
       [0, 1, 2].forEach((i) => {
-        cy.request({ url: `${base}${cats[i].imageUrl}`, failOnStatusCode: true }).then((res) => {
+        cy.request({ url: `${base}${cats[i].imageUrl}`, failOnStatusCode: true, encoding: 'binary' }).then((res) => {
           expect(res.status).to.eq(200);
           const ct = (res.headers['content-type'] || res.headers['Content-Type'] || '').toLowerCase();
-          expect(ct.includes('image') || res.body.length > 50, `cat ${i + 1} réponse image`).to.be.true;
+          expect(ct.includes('image'), `cat ${i + 1} content-type image`).to.be.true;
+          expect(res.body.slice(0, 8), `cat ${i + 1} signature PNG`).to.eq('\x89PNG\r\n\x1a\n');
         });
       });
     });

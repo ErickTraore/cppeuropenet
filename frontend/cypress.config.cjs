@@ -406,6 +406,83 @@ module.exports = defineConfig({
             };
           }
         },
+        async uploadHomeConfigImageCurl({
+          baseUrl,
+          fixtureRelativePath,
+          mimeType = 'image/png',
+          tokenSecret = process.env.CYPRESS_HOME_CONFIG_JWT_SIGN_SECRET || '0f9f8e9d8c7b6a5z4e3r2t1y0u',
+          userId = 2,
+          isAdmin = true,
+        } = {}) {
+          if (!baseUrl) throw new Error('uploadHomeConfigImageCurl: baseUrl requis');
+          if (!fixtureRelativePath) throw new Error('uploadHomeConfigImageCurl: fixtureRelativePath requis');
+
+          const root = path.resolve(__dirname);
+          const abs = path.join(root, fixtureRelativePath);
+          if (!fs.existsSync(abs)) {
+            throw new Error(`Fixture introuvable: ${fixtureRelativePath}`);
+          }
+
+          const now = Math.floor(Date.now() / 1000);
+          const token = signHs256Jwt(
+            { userId: Number(userId), isAdmin: !!isAdmin, iat: now, exp: now + 3600 },
+            String(tokenSecret)
+          );
+
+          const uploadUrl = `${String(baseUrl).replace(/\/$/, '')}/api/home-config/upload`;
+          const tmpOut = path.join(os.tmpdir(), `cypress-home-upload-${Date.now()}-${Math.random().toString(36).slice(2, 9)}.json`);
+          try {
+            const r = spawnSync(
+              'curl',
+              [
+                '-sS',
+                '-m',
+                '120',
+                '-o',
+                tmpOut,
+                '-w',
+                '%{http_code}',
+                '-X',
+                'POST',
+                uploadUrl,
+                '-H',
+                `Authorization: Bearer ${token}`,
+                '-F',
+                `image=@${abs};type=${mimeType}`,
+              ],
+              { encoding: 'utf8', maxBuffer: 2 * 1024 * 1024 }
+            );
+            if (r.error) throw r.error;
+
+            const httpCode = parseInt((r.stdout || '').trim(), 10);
+            const raw = (() => {
+              try {
+                return fs.readFileSync(tmpOut, 'utf8');
+              } catch {
+                return '';
+              }
+            })();
+
+            if (r.status !== 0) {
+              throw new Error(`curl upload home-config exit ${r.status}: ${(r.stderr || '').trim()} ${raw.slice(0, 300)}`);
+            }
+            if (!Number.isFinite(httpCode) || httpCode < 200 || httpCode >= 300) {
+              throw new Error(`upload home-config HTTP ${httpCode}: ${raw.slice(0, 300)}`);
+            }
+
+            const body = raw ? JSON.parse(raw) : null;
+            if (!body || typeof body.url !== 'string' || !body.url) {
+              throw new Error(`upload home-config response invalide: ${raw.slice(0, 300)}`);
+            }
+            return { url: body.url };
+          } finally {
+            try {
+              fs.unlinkSync(tmpOut);
+            } catch {
+              /* ok */
+            }
+          }
+        },
         async presseMediaUpload(opts) {
           const {
             token,
