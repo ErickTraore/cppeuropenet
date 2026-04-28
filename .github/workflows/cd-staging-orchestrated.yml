@@ -107,7 +107,7 @@ jobs:
              docker compose --env-file docker-compose.staging.env --env-file .env.compose-staging-pl -f docker-compose.staging.yml -p staging-presse-locale up -d --build
 
              cd ../presseGenerale-backend
-             docker compose --env-file docker-compose.staging.env --env-file .env.compose-staging -f docker-compose.staging.yml -p staging-presse-generale up -d --build
+             docker compose --env-file docker-compose.staging.env -f docker-compose.staging.yml -p staging-presse-generale up -d --build
 
              cd ../home-config-backend
              docker compose --env-file docker-compose.production.env -f docker-compose.yml up -d --force-recreate home-config-backend
