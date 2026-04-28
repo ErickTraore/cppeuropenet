@@ -44,6 +44,10 @@ frontend/cypress/tmp/
 # Fichiers de debug local
 frontend/tables.txt
 
+# Fichiers d'environnement locaux (générés ou contenant des secrets locaux)
+docker-compose.development.env
+frontend/.env.cypress
+
 # Journaux Cypress / artefacts copiés par erreur à la racine frontend
 frontend/cypress-new-*.log
 frontend/cypress-036-last.log
