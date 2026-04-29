@@ -95,4 +95,35 @@ describe('Vérification des services essentiels (Hostinger)', () => {
       expect(res.status).to.eq(404);
     });
   });
+
+  it('presse locale : avec token admin valide, /api/presse-locale/messages/new ne doit jamais répondre 401/403/404', () => {
+    const base = presseBase();
+    const loginUrl = `${userApiBase}/api/users/login`;
+
+    cy.request({
+      method: 'POST',
+      url: loginUrl,
+      body: { email: 'admin2026@cppeurope.net', password: 'admin2026!' },
+      failOnStatusCode: false,
+    }).then((loginRes) => {
+      expect(loginRes.status, 'login admin').to.eq(200);
+      const token = loginRes.body && loginRes.body.accessToken;
+      expect(token, 'accessToken admin').to.be.a('string').and.not.be.empty;
+
+      // Payload volontairement invalide côté métier (content trop court) pour vérifier le contrat route+auth.
+      // Si auth/routage est correct, le backend doit répondre 400, pas 401/403/404.
+      cy.request({
+        method: 'POST',
+        url: `${base}/api/presse-locale/messages/new`,
+        headers: { Authorization: `Bearer ${token}` },
+        body: { title: 'xx', content: 'y', categ: 'presse-locale', siteKey: 'cppEurope' },
+        failOnStatusCode: false,
+      }).then((res) => {
+        expect(
+          res.status,
+          'contract presse-locale auth/route (doit échouer en validation métier, pas en auth/routage)'
+        ).to.eq(400);
+      });
+    });
+  });
 });
