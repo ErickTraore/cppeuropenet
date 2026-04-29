@@ -38,6 +38,18 @@ const ProfilePage = () => {
 
   const [uploading, setUploading] = useState({});
   const [uploadedSrcBySlot, setUploadedSrcBySlot] = useState({});
+
+  const findLatestMediaIdForSlot = (slotIndex) => {
+    const candidates = (Array.isArray(slots) ? slots : []).filter((s) => Number(s?.slot) === Number(slotIndex));
+    if (candidates.length === 0) return null;
+    const sorted = [...candidates].sort((a, b) => {
+      const aTs = Date.parse(a?.updatedAt || a?.createdAt || 0) || 0;
+      const bTs = Date.parse(b?.updatedAt || b?.createdAt || 0) || 0;
+      if (aTs !== bTs) return bTs - aTs;
+      return (Number(b?.id) || 0) - (Number(a?.id) || 0);
+    });
+    return sorted[0]?.id || null;
+  };
   // ---- 1) Chargement initial du profil ----
   useEffect(() => {
     console.log('[ProfilePage] useEffect(mount) → dispatch(fetchProfileInfo())');
@@ -151,7 +163,20 @@ const ProfilePage = () => {
       }));
 
       console.log('[ProfilePage] Dispatch updateProfileMedia avec mediaId =', mediaId);
-      await dispatch(updateProfileMedia(mediaId, { url: imageUrl }));
+      try {
+        await dispatch(updateProfileMedia(mediaId, { url: imageUrl, path: imageUrl }));
+      } catch (firstUpdateErr) {
+        console.warn('[ProfilePage] Premier update échoué, tentative de reprise par slot:', slotIndex, firstUpdateErr?.message);
+        if (data?.id) {
+          await dispatch(fetchProfileMedia(data.id));
+        }
+        const fallbackMediaId = findLatestMediaIdForSlot(slotIndex);
+        if (!fallbackMediaId) {
+          throw firstUpdateErr;
+        }
+        console.log('[ProfilePage] Retry updateProfileMedia avec mediaId fallback =', fallbackMediaId);
+        await dispatch(updateProfileMedia(fallbackMediaId, { url: imageUrl, path: imageUrl }));
+      }
 
       console.log('[ProfilePage] Rechargement des médias avec userId =', data?.id);
       if (data?.id) {

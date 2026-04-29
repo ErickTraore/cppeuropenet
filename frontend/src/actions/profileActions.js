@@ -39,6 +39,61 @@ const DEFAULT_PROFILE_SLOT_PATHS = [
   '/mediaprofile/default/slot-2.png',
   '/mediaprofile/default/slot-3.png',
 ];
+const PROFILE_SLOT_INDICES = [0, 1, 2, 3];
+
+function parseSlotIndex(value) {
+  const n = Number(value);
+  return Number.isInteger(n) ? n : null;
+}
+
+function isCanonicalProfileSlot(slot) {
+  return PROFILE_SLOT_INDICES.includes(slot);
+}
+
+function slotTimestampValue(item) {
+  const raw = item?.updatedAt || item?.createdAt || null;
+  const ts = raw ? Date.parse(raw) : NaN;
+  return Number.isFinite(ts) ? ts : 0;
+}
+
+function numericIdValue(item) {
+  const n = Number(item?.id);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function isDefaultPathForSlot(path, slot) {
+  return String(path || '') === DEFAULT_PROFILE_SLOT_PATHS[slot];
+}
+
+function pickBestRecordForSlot(records, slot) {
+  if (!Array.isArray(records) || records.length === 0) return null;
+  const ranked = [...records].sort((a, b) => {
+    const aCustom = isDefaultPathForSlot(a?.path, slot) ? 0 : 1;
+    const bCustom = isDefaultPathForSlot(b?.path, slot) ? 0 : 1;
+    if (aCustom !== bCustom) return bCustom - aCustom;
+
+    const byTs = slotTimestampValue(b) - slotTimestampValue(a);
+    if (byTs !== 0) return byTs;
+
+    return numericIdValue(b) - numericIdValue(a);
+  });
+  return ranked[0] || null;
+}
+
+function normalizeToFourProfileSlots(rawSlots) {
+  const slots = Array.isArray(rawSlots) ? rawSlots : [];
+  const grouped = new Map(PROFILE_SLOT_INDICES.map((s) => [s, []]));
+
+  for (const item of slots) {
+    const slot = parseSlotIndex(item?.slot);
+    if (slot == null || !isCanonicalProfileSlot(slot)) continue;
+    grouped.get(slot).push(item);
+  }
+
+  return PROFILE_SLOT_INDICES
+    .map((slot) => pickBestRecordForSlot(grouped.get(slot), slot))
+    .filter(Boolean);
+}
 
 function normalizeProfileMediaList(data) {
   const slots = Array.isArray(data)
@@ -56,7 +111,7 @@ function normalizeProfileMediaList(data) {
 
 /** Indices 0–3 absents de la réponse API (profil sans provisionnement média, ex. ancien script SQL). */
 function missingProfileSlotIndices(slots) {
-  return [0, 1, 2, 3].filter((i) => !slots.some((s) => Number(s.slot) === i));
+  return PROFILE_SLOT_INDICES.filter((i) => !slots.some((s) => parseSlotIndex(s?.slot) === i));
 }
 
 async function postDefaultProfileSlot(profileId, slot) {
@@ -219,7 +274,7 @@ export const updateProfileMedia = (mediaId, payload) => async (dispatch) => {
   if (!token) {
     console.error('❌ Token manquant');
     dispatch({ type: UPDATE_PROFILEMEDIA_FAIL, payload: 'Token manquant' });
-    return;
+    throw new Error('Token manquant');
   }
 
   const url = `${getProfileMediaApiBase()}/mediaProfile/${mediaId}`;
@@ -246,9 +301,11 @@ export const updateProfileMedia = (mediaId, payload) => async (dispatch) => {
 
     console.log('✅ Mise à jour réussie, dispatch UPDATE_PROFILEMEDIA_SUCCESS');
     dispatch({ type: UPDATE_PROFILEMEDIA_SUCCESS, payload: data });
+    return data;
   } catch (error) {
     console.error('❌ Erreur updateProfileMedia :', error.message);
     dispatch({ type: UPDATE_PROFILEMEDIA_FAIL, payload: error.message });
+    throw error;
   }
 };
 
@@ -290,6 +347,8 @@ export const fetchProfileMedia = (profileId) => async (dispatch) => {
     let slots = normalizeProfileMediaList(data);
 
     slots = await ensureProfileMediaSlots(profileId, slots);
+
+    slots = normalizeToFourProfileSlots(slots);
 
     slots.sort((a, b) => Number(a.slot) - Number(b.slot));
     console.log('[fetchProfileMedia] Slots finaux:', slots.length, slots);
