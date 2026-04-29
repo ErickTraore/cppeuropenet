@@ -408,14 +408,18 @@ module.exports = defineConfig({
         },
         async uploadHomeConfigImageCurl({
           baseUrl,
+          homeConfigOrigin,
           fixtureRelativePath,
           mimeType = 'image/png',
-          tokenSecret = process.env.CYPRESS_HOME_CONFIG_JWT_SIGN_SECRET || '0f9f8e9d8c7b6a5z4e3r2t1y0u',
-          userId = 2,
-          isAdmin = true,
+          adminEmail,
+          adminPassword,
         } = {}) {
           if (!baseUrl) throw new Error('uploadHomeConfigImageCurl: baseUrl requis');
+          if (!homeConfigOrigin) throw new Error('uploadHomeConfigImageCurl: homeConfigOrigin requis');
           if (!fixtureRelativePath) throw new Error('uploadHomeConfigImageCurl: fixtureRelativePath requis');
+          if (!adminEmail || !adminPassword) {
+            throw new Error('uploadHomeConfigImageCurl: adminEmail/adminPassword requis');
+          }
 
           const root = path.resolve(__dirname);
           const abs = path.join(root, fixtureRelativePath);
@@ -423,11 +427,16 @@ module.exports = defineConfig({
             throw new Error(`Fixture introuvable: ${fixtureRelativePath}`);
           }
 
-          const now = Math.floor(Date.now() / 1000);
-          const token = signHs256Jwt(
-            { userId: Number(userId), isAdmin: !!isAdmin, iat: now, exp: now + 3600 },
-            String(tokenSecret)
-          );
+          const resolvedOrigin = String(homeConfigOrigin).replace(/\/$/, '');
+          const loginUrl = `${resolvedOrigin}/api/users/login`;
+          const { body: loginBody } = await httpJsonRequest(loginUrl, {
+            method: 'POST',
+            jsonBody: { email: adminEmail, password: adminPassword },
+          });
+          const token = loginBody && loginBody.accessToken;
+          if (!token) {
+            throw new Error('uploadHomeConfigImageCurl: login admin sans accessToken');
+          }
 
           const uploadUrl = `${String(baseUrl).replace(/\/$/, '')}/api/home-config/upload`;
           const tmpOut = path.join(os.tmpdir(), `cypress-home-upload-${Date.now()}-${Math.random().toString(36).slice(2, 9)}.json`);

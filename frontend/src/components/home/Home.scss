@@ -48,6 +48,9 @@
   position: relative;
   width: 88px;
   height: 88px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #e2e8f0;
 }
 
 .home-page__cat-thumb {
@@ -58,6 +61,12 @@
   display: block;
   border: 3px solid transparent;
   box-sizing: border-box;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.home-page__cat-thumb--visible {
+  opacity: 1;
 }
 
 .home-page__cat-btn--active .home-page__cat-thumb {
@@ -87,6 +96,12 @@
   margin: 0 0.25rem;
 }
 
+.home-page__card-media-wrap {
+  position: relative;
+  min-height: 170px;
+  background: #e2e8f0;
+}
+
 .home-page__card-header {
   background: linear-gradient(90deg, #2563eb 0%, #9333ea 100%);
   color: #fff;
@@ -100,6 +115,29 @@
   display: block;
   aspect-ratio: 16 / 10;
   object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.home-page__card-img--visible {
+  opacity: 1;
+}
+
+.home-page__image-loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.home-page__image-loader--thumb {
+  background: #e2e8f0;
+}
+
+.home-page__image-loader--card {
+  background: linear-gradient(180deg, #f8fafc, #e2e8f0);
 }
 
 .home-page__loading,

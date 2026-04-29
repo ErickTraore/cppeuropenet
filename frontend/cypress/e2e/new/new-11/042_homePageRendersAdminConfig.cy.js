@@ -14,12 +14,16 @@ describe('Home config admin — fixtures cat. 1 à 3, enregistrer, trois images 
   const adminPassword = 'admin2026!';
   const fixtureImage = 'cypress/fixtures/e2e-home-cat1.png';
   const isStagingProfile = String(Cypress.env('E2E_PROFILE') || '').toLowerCase() === 'staging';
+  const homeConfigOrigin = String(Cypress.env('HOME_CONFIG_ORIGIN') || '').trim();
 
   /** Copie mémoire pour logs ; la source de vérité teardown est le fichier baseline. */
   let homeBaselineSnapshot = null;
   let homeConfigApiAvailable = true;
 
   before(() => {
+    if (!homeConfigOrigin) {
+      throw new Error('[042] Paramètre Cypress HOME_CONFIG_ORIGIN manquant. Configurez CYPRESS_HOME_CONFIG_ORIGIN dans votre environnement E2E.');
+    }
     cy.task('ensureFrontendProd8082');
     const base = Cypress.config('baseUrl');
     cy.request({ url: `${base}/api/home-config`, failOnStatusCode: false }).then((res) => {
@@ -83,8 +87,11 @@ describe('Home config admin — fixtures cat. 1 à 3, enregistrer, trois images 
     [0, 1, 2].forEach((i) => {
       cy.task('uploadHomeConfigImageCurl', {
         baseUrl: base,
+        homeConfigOrigin,
         fixtureRelativePath: fixtureImage,
         mimeType: 'image/png',
+        adminEmail,
+        adminPassword,
       }).then((payload) => {
         const url = payload && payload.url;
         expect(url, `upload catégorie ${i + 1} retourne body.url`).to.match(/^\/api\/home-config\/media\/.+/);

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Spinner from '../common/Spinner';
 import './Home.scss';
 
 const API = '/api/home-config';
@@ -7,6 +8,8 @@ const Home = () => {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(0);
+  const [thumbLoaded, setThumbLoaded] = useState([false, false, false]);
+  const [cardLoadedByIndex, setCardLoadedByIndex] = useState({});
 
   useEffect(() => {
     let cancelled = false;
@@ -16,7 +19,11 @@ const Home = () => {
         return r.json();
       })
       .then((json) => {
-        if (!cancelled) setData(json);
+        if (!cancelled) {
+          setData(json);
+          setThumbLoaded([false, false, false]);
+          setCardLoadedByIndex({});
+        }
       })
       .catch((e) => {
         if (!cancelled) setError(e.message || 'Chargement impossible');
@@ -40,12 +47,15 @@ const Home = () => {
   if (!data || !Array.isArray(data.categories) || data.categories.length !== 3) {
     return (
       <div className="home-page">
-        <p className="home-page__loading">Chargement…</p>
+        <div className="home-page__loading">
+          <Spinner size="large" text="Chargement de la page d'accueil..." />
+        </div>
       </div>
     );
   }
 
   const cat = data.categories[selected];
+  const isCardLoaded = !!cardLoadedByIndex[selected];
 
   return (
     <div className="home-page">
@@ -64,7 +74,32 @@ const Home = () => {
             onClick={() => setSelected(i)}
           >
             <span className="home-page__cat-thumb-wrap">
-              <img className="home-page__cat-thumb" src={c.imageUrl} alt="" />
+              {!thumbLoaded[i] ? (
+                <span className="home-page__image-loader home-page__image-loader--thumb">
+                  <Spinner size="small" text="" />
+                </span>
+              ) : null}
+              <img
+                className={`home-page__cat-thumb ${thumbLoaded[i] ? 'home-page__cat-thumb--visible' : ''}`}
+                src={c.imageUrl}
+                alt=""
+                onLoad={() => {
+                  setThumbLoaded((prev) => {
+                    if (prev[i]) return prev;
+                    const next = [...prev];
+                    next[i] = true;
+                    return next;
+                  });
+                }}
+                onError={() => {
+                  setThumbLoaded((prev) => {
+                    if (prev[i]) return prev;
+                    const next = [...prev];
+                    next[i] = true;
+                    return next;
+                  });
+                }}
+              />
               {selected === i ? <span className="home-page__cat-check">✓</span> : null}
             </span>
             <span className="home-page__cat-label">{c.label}</span>
@@ -74,7 +109,24 @@ const Home = () => {
 
       <article className="home-page__card">
         <div className="home-page__card-header">{cat.label}</div>
-        <img className="home-page__card-img" src={cat.imageUrl} alt={cat.label} />
+        <div className="home-page__card-media-wrap">
+          {!isCardLoaded ? (
+            <div className="home-page__image-loader home-page__image-loader--card">
+              <Spinner size="medium" text="Chargement de l'image..." />
+            </div>
+          ) : null}
+          <img
+            className={`home-page__card-img ${isCardLoaded ? 'home-page__card-img--visible' : ''}`}
+            src={cat.imageUrl}
+            alt={cat.label}
+            onLoad={() => {
+              setCardLoadedByIndex((prev) => ({ ...prev, [selected]: true }));
+            }}
+            onError={() => {
+              setCardLoadedByIndex((prev) => ({ ...prev, [selected]: true }));
+            }}
+          />
+        </div>
       </article>
     </div>
   );
