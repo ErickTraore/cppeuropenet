@@ -322,7 +322,14 @@ module.exports = defineConfig({
             throw new Error('loginByApiNode requires email and password.');
           }
           const doLogin = async () => {
-            const { status, body } = await httpJsonRequest(frontApiUrl(CYPRESS_FRONTEND_HOST, '/api/users/login'), {
+            // En staging (CYPRESS_BASE_URL = serveur distant), le login doit utiliser le même
+            // backend que le baseUrl pour éviter un mismatch de JWT_SECRET.
+            const envBaseUrl = (process.env.CYPRESS_BASE_URL || '').replace(/\/$/, '');
+            const isRemoteBase = envBaseUrl && !/localhost|127\.0\.0\.1/.test(envBaseUrl);
+            const loginUrl = isRemoteBase
+              ? `${envBaseUrl}/api/users/login`
+              : frontApiUrl(CYPRESS_FRONTEND_HOST, '/api/users/login');
+            const { status, body } = await httpJsonRequest(loginUrl, {
               method: 'POST',
               jsonBody: { email, password },
               timeoutMs,
@@ -503,6 +510,7 @@ module.exports = defineConfig({
             fixtureRelativePath,
             port,
             apiPath,
+            fullUrl,
           } = opts;
           const root = path.resolve(__dirname);
           const abs = path.join(root, fixtureRelativePath);
@@ -510,7 +518,7 @@ module.exports = defineConfig({
             throw new Error(`Fixture introuvable: ${fixtureRelativePath}`);
           }
           const pathOnly = apiPath.startsWith('/') ? apiPath : `/${apiPath}`;
-          const url = `http://127.0.0.1:${port}${pathOnly}`;
+          const url = String(fullUrl || '').trim() || `http://127.0.0.1:${port}${pathOnly}`;
           const formField = `${fieldName}=@${abs};filename=${fileName}${mimeType ? `;type=${mimeType}` : ''}`;
           const tmpOut = path.join(os.tmpdir(), `cypress-upload-${Date.now()}-${Math.random().toString(36).slice(2, 9)}.bin`);
           try {

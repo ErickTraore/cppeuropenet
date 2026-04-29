@@ -188,10 +188,16 @@ app.use((req, res, next) => {
 });
 
 // JSON + upload user-media-profile : même origine que le front (évite CORS navigateur / E2E).
+// En staging (CONTABO_PATH_PREFIX=/cppeurope-staging), les appels UMP sont réécrits en
+// /cppeurope-staging/api/media/... afin que le nginx Contabo les route vers le backend staging
+// (port 17007) et non vers le backend production (port 7007).
 app.use((req, res, next) => {
   const o = req.originalUrl || '';
   if (!o.startsWith('/api/user-media-profile')) return next();
-  proxyRawPath(req, res, MEDIA_HOST, MEDIA_PORT, o, { omitOrigin: true });
+  const targetPath = CONTABO_PATH_PREFIX
+    ? o.replace(/^\/api\/user-media-profile/, `${CONTABO_PATH_PREFIX}/api/media`)
+    : o;
+  proxyRawPath(req, res, MEDIA_HOST, MEDIA_PORT, targetPath, { omitOrigin: true });
 });
 
 // Messages presse locale (7005) : /api/presse-locale/* → backend /api/*
