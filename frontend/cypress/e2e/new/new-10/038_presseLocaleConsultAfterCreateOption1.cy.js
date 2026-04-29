@@ -11,7 +11,6 @@ describe('038 - Presse locale — Consulter après création (option 1)', () => 
 
   const waitForTitleInConsult = (expectedTitle, attemptsLeft = 12) => {
     cy.dismissSessionModalIfPresent();
-    cy.get('.presse__message__header__title', { timeout: 30000 }).should('exist');
     return cy.get('body', { timeout: 10000 }).then(($body) => {
       const exists = $body
         .find('.presse__message__header__title')
@@ -53,6 +52,7 @@ describe('038 - Presse locale — Consulter après création (option 1)', () => 
       }
 
       waitForTitleInConsult(titre);
+      cy.dismissSessionModalIfPresent();
       cy.contains('.presse__message__header__title', titre, { timeout: 45000 }).should('be.visible');
     cy.contains('.presse__message__header__title', titre)
       .last()

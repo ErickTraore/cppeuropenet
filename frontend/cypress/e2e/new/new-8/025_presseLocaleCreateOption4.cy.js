@@ -3,7 +3,7 @@
  *
  * Version robuste: contrat front + endpoint create, sans dependance UI.
  */
-const { presseLocOrigin } = require('../../../support/e2eApiUrls');
+const { presseLocMessages } = require('../../../support/e2eApiUrls');
 
 describe('025 - Presse Locale - Create (option 4: contrat API stable)', () => {
   before(() => {
@@ -18,7 +18,7 @@ describe('025 - Presse Locale - Create (option 4: contrat API stable)', () => {
   it('endpoint create existe sur presseLocale-backend', () => {
     cy.request({
       method: 'POST',
-      url: `${presseLocOrigin}/api/messages/new`,
+      url: `${presseLocMessages}new/`,
       body: {
         title: `E2E contract locale option4 ${Date.now()}`,
         content: 'E2E contract payload option4',

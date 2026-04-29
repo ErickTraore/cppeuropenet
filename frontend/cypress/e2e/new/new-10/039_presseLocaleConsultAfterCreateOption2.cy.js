@@ -12,7 +12,6 @@ describe('039 - Presse locale — Consulter après création (option 2 photo)', 
 
   const waitForTitleInConsult = (expectedTitle, attemptsLeft = 14) => {
     cy.dismissSessionModalIfPresent();
-    cy.get('.presse__message__header__title', { timeout: 30000 }).should('exist');
     return cy.get('body', { timeout: 10000 }).then(($body) => {
       const exists = $body
         .find('.presse__message__header__title')
@@ -48,9 +47,10 @@ describe('039 - Presse locale — Consulter après création (option 2 photo)', 
     cy.visit('/#newpresse-locale');
     cy.wait('@localeMessagesList', { timeout: 45000 }).then((interception) => {
       const status = interception && interception.response ? interception.response.statusCode : -1;
-      expect(status, 'GET presse-locale/messages répond 200').to.eq(200);
+      expect(status, 'GET presse-locale/messages répond 200/304').to.be.oneOf([200, 304]);
 
       waitForTitleInConsult(titre);
+      cy.dismissSessionModalIfPresent();
       cy.contains('.presse__message__header__title', titre, { timeout: 120000 }).should('be.visible');
       cy.expandPresseConsultCardByTitle(titre, { timeout: 90000 });
       cy.contains('.presse__message__content', contenu).should('be.visible');

@@ -65,6 +65,17 @@ const {
 const E2E_ADMIN = { email: 'admin2026@cppeurope.net', password: 'admin2026!' };
 const USERS_LOGIN = '/api/users/login';
 
+function sameOriginApi(path) {
+  const p = path.startsWith('/') ? path : `/${path}`;
+  const base = String(Cypress.config('baseUrl') || '').trim();
+  try {
+    const origin = new URL(base).origin;
+    return `${origin}${p}`;
+  } catch {
+    return p;
+  }
+}
+
 /** Déplie la carte Consulter (titre + contenu) pour un article dont le titre est visible. */
 Cypress.Commands.add('expandPresseConsultCardByTitle', (titre, options = {}) => {
   const timeout = options.timeout || 90000;
@@ -138,7 +149,7 @@ Cypress.Commands.add('cleanupPresseLocaleByTitle', (titre) => {
     const token = res.body.accessToken;
     cy.request({
       method: 'GET',
-      url: API_PRESSE_LOC_LIST,
+      url: sameOriginApi('/api/presse-locale/messages/?categ=presse-locale&siteKey=cppEurope'),
       headers: { Authorization: `Bearer ${token}` },
     }).then((r2) => {
       const messages = Array.isArray(r2.body) ? r2.body : [];
@@ -146,7 +157,7 @@ Cypress.Commands.add('cleanupPresseLocaleByTitle', (titre) => {
       if (found) {
         cy.request({
           method: 'DELETE',
-          url: API_PRESSE_LOC_BASE + found.id,
+          url: sameOriginApi(`/api/presse-locale/messages/${found.id}`),
           headers: { Authorization: `Bearer ${token}` },
           failOnStatusCode: false,
         }).then((del) => {
@@ -207,7 +218,7 @@ Cypress.Commands.add('apiCreatePresseLocaleMessage', (token, titre, contenu) => 
   return cy
     .request({
       method: 'POST',
-      url: `${API_PRESSE_LOC_BASE}new/`,
+      url: sameOriginApi('/api/presse-locale/messages/new/'),
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -224,6 +235,7 @@ Cypress.Commands.add('apiUploadPresseLocaleImage', (token, messageId) => {
   return cy.task('presseMediaUpload', {
     token,
     messageId,
+    fullUrl: sameOriginApi('/api/media-locale/uploadImage/'),
     fieldName: 'image',
     fileName: 'e2e-1x1.png',
     mimeType: 'image/png',
@@ -237,6 +249,7 @@ Cypress.Commands.add('apiUploadPresseLocaleVideo', (token, messageId) => {
   return cy.task('presseMediaUpload', {
     token,
     messageId,
+    fullUrl: sameOriginApi('/api/media-locale/uploadVideo/'),
     fieldName: 'video',
     fileName: 'video-e2e-valid-small.mp4',
     mimeType: 'video/mp4',
