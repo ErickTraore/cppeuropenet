@@ -98,7 +98,8 @@ describe('Vérification des services essentiels (Hostinger)', () => {
 
   it('presse locale : avec token admin valide, /api/presse-locale/messages/new ne doit jamais répondre 401/403/404', () => {
     const base = presseBase();
-    const loginUrl = `${userApiBase}/api/users/login`;
+    const frontBase = String(Cypress.config('baseUrl') || '').replace(/\/$/, '');
+    const loginUrl = isStagingProfile() ? `${frontBase}/api/users/login` : `${userApiBase}/api/users/login`;
 
     cy.request({
       method: 'POST',
