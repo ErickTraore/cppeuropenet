@@ -35,7 +35,7 @@ run_staging() {
   log "Gate staging: full E2E suite (${STAGING_BASE_URL})"
   cd "$FRONTEND_DIR"
 
-  local staging_specs="${STAGING_CYPRESS_SPEC:-cypress/e2e/new/new-0-start/004_servicesInventory.cy.js,cypress/e2e/new/new-0-start/006_initUsersE2E.cy.js,cypress/e2e/new/new-0-start/007_initUsersE2E_2.cy.js,cypress/e2e/new/new-0-start/007_servicesStatus.cy.js,cypress/e2e/new/new-0-start/009_loginFormE2E.cy.js,cypress/e2e/new/new-11/042_homePageRendersAdminConfig.cy.js,cypress/e2e/new/new-11/044_homePageVisitorFlow.cy.js}"
+  local staging_specs="${STAGING_CYPRESS_SPEC:-cypress/e2e/new/**/*.cy.js}"
 
   log "Attente frontend staging (${STAGING_BASE_URL}) avant Cypress"
   local code="000"
