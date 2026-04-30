@@ -208,7 +208,35 @@ const ProfilePage = () => {
     return <div>Erreur : {error}</div>;
   }
 
-  const safeSlots = Array.isArray(slots) ? slots : [];
+  const pickRenderableProfileSlots = (rawSlots) => {
+    if (!Array.isArray(rawSlots)) return [];
+
+    const bySlot = new Map();
+    for (const item of rawSlots) {
+      const slotIndex = Number(item?.slot);
+      if (!Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex > 3) {
+        continue;
+      }
+
+      const current = bySlot.get(slotIndex);
+      if (!current) {
+        bySlot.set(slotIndex, item);
+        continue;
+      }
+
+      const currentTs = Date.parse(current?.updatedAt || current?.createdAt || 0) || 0;
+      const nextTs = Date.parse(item?.updatedAt || item?.createdAt || 0) || 0;
+      if (nextTs > currentTs || (nextTs === currentTs && Number(item?.id || 0) > Number(current?.id || 0))) {
+        bySlot.set(slotIndex, item);
+      }
+    }
+
+    return [0, 1, 2, 3]
+      .map((slotIndex) => bySlot.get(slotIndex))
+      .filter(Boolean);
+  };
+
+  const safeSlots = pickRenderableProfileSlots(slots);
   console.log('[ProfilePage] safeSlots (tableau) =', safeSlots);
 
   // Résolution d'URL : /imagesprofile et /mediaprofile sont servis par nginx en "same-origin"
