@@ -3,7 +3,7 @@
  *
  * Version robuste: contrat front + endpoint create, sans dépendance cy.visit.
  */
-const { presseGenOrigin } = require('../../../support/e2eApiUrls');
+const { presseGenOrigin, presseGenMessages } = require('../../../support/e2eApiUrls');
 
 describe('014 - Presse Générale - Create (option 3: contrat API stable)', () => {
   before(() => {
@@ -18,7 +18,7 @@ describe('014 - Presse Générale - Create (option 3: contrat API stable)', () =
   it('endpoint create existe sur presseGenerale-backend', () => {
     cy.request({
       method: 'POST',
-      url: `${presseGenOrigin}/api/messages/new`,
+      url: `${presseGenMessages}new`,
       body: {
         title: `E2E contract option3 ${Date.now()}`,
         content: 'E2E contract payload option3',

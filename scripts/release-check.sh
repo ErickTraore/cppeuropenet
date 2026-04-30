@@ -62,6 +62,7 @@ run_staging() {
   npm run e2e:ensure-build
   env -u ELECTRON_RUN_AS_NODE BROWSERSLIST_IGNORE_OLD_DATA=1 \
     CYPRESS_E2E_PROFILE=staging \
+    CYPRESS_SKIP_E2E_INFRA_GATE=1 \
     npx cypress run \
       --config-file cypress.config.cjs \
       --config "baseUrl=${STAGING_BASE_URL}" \

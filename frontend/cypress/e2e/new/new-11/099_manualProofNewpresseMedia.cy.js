@@ -8,7 +8,7 @@ describe('099 - Preuve manuelle newpresse avec media visible', () => {
     cy.loginByUi(adminEmail, adminPassword);
     cy.dismissSessionModalIfPresent();
 
-    cy.intercept('POST', '**/api/messages/new*').as('presseNew');
+    cy.intercept('POST', /\/(api\/presse-generale\/messages|api\/messages)\/new/).as('presseNew');
     cy.intercept('POST', '**/api/media/uploadImage/**').as('apiUploadImage');
 
     cy.visit('/#admin-presse-generale');

@@ -25,6 +25,7 @@ const sameOriginBase = sameOriginBaseIfStaging();
 const userOrigin = sameOriginBase || contaboOrigin('E2E_PORT_USER_BACKEND');
 const presseGenOrigin = sameOriginBase || contaboOrigin('E2E_PORT_PRESSE_GENERALE');
 const presseLocOrigin = sameOriginBase || contaboOrigin('E2E_PORT_PRESSE_LOCALE');
+const presseGenMessagesPath = sameOriginBase ? '/api/presse-generale/messages/' : '/api/messages/';
 const presseLocMessagesPath = sameOriginBase ? '/api/presse-locale/messages/' : '/api/messages/';
 
 module.exports = {
@@ -33,7 +34,7 @@ module.exports = {
   presseGenOrigin,
   presseLocOrigin,
   usersApi: `${userOrigin}/api/users`,
-  presseGenMessages: `${presseGenOrigin}/api/messages/`,
+  presseGenMessages: `${presseGenOrigin}${presseGenMessagesPath}`,
   presseLocMessages: `${presseLocOrigin}${presseLocMessagesPath}`,
   presseLocMessagesList: `${presseLocOrigin}${presseLocMessagesPath}?categ=presse-locale&siteKey=cppEurope`,
   /** GET/POST health endpoint direct sur un port inventaire (même hôte que la gate e2eInfrastructure). */

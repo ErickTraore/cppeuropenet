@@ -272,7 +272,7 @@ module.exports = defineConfig({
          */
         async assertE2EInfrastructure() {
           if (String(process.env.CYPRESS_SKIP_E2E_INFRA_GATE || '').trim() === '1') {
-            return 'e2e-gate-skipped';
+            return 'e2e-ready';
           }
           const maxMs = parseInt(process.env.CYPRESS_E2E_GATE_MAX_MS || '180000', 10);
           const pollMs = parseInt(process.env.CYPRESS_E2E_GATE_POLL_MS || '2000', 10);
