@@ -24,6 +24,8 @@ green() { printf '\033[32m%s\033[0m\n' "$*"; }
 yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
 section() { printf '\n==== %s ====\n' "$*"; }
 
+OVERALL_STATUS=0
+
 fetch_git_meta() {
   local ssh_base="$1"
   local path="$2"
@@ -103,6 +105,7 @@ report_pair() {
     green "PARITY: OK"
   else
     red "PARITY: DRIFT"
+    OVERALL_STATUS=1
   fi
 }
 
@@ -119,3 +122,10 @@ report_pair "Media Profile Backend (Staging vs Production)" "staging-media" "$st
 
 echo
 section "Done"
+
+if [[ "$OVERALL_STATUS" -ne 0 ]]; then
+  red "Global parity status: DRIFT"
+  exit 1
+fi
+
+green "Global parity status: OK"

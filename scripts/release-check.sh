@@ -64,6 +64,12 @@ run_staging() {
       --spec "${staging_specs}"
 }
 
+run_parity_gate() {
+  log "Gate parity: staging vs production (mandatory before prod promotion)"
+  cd "$ROOT"
+  ./scripts/env-parity-check.sh
+}
+
 run_prod_smoke() {
   log "Gate prod-smoke: critical auth smoke (${PROD_BASE_URL})"
   cd "$FRONTEND_DIR"
@@ -131,6 +137,7 @@ case "$MODE" in
     run_staging
     ;;
   prod-smoke)
+    run_parity_gate
     run_prod_smoke
     ;;
   ci-smoke|ci-e2e-full)
@@ -139,6 +146,7 @@ case "$MODE" in
   all)
     run_local
     run_staging
+    run_parity_gate
     run_prod_smoke
     ;;
   -h|--help|help)
