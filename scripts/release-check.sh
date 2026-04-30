@@ -14,6 +14,7 @@ FRONTEND_DIR="$ROOT/frontend"
 MODE="${1:-all}"
 STAGING_BASE_URL="${STAGING_BASE_URL:-http://93.127.167.134:9085}"
 PROD_BASE_URL="${PROD_BASE_URL:-https://cppeurope.net}"
+STAGING_HOME_CONFIG_ORIGIN="${STAGING_HOME_CONFIG_ORIGIN:-$STAGING_BASE_URL}"
 
 log() {
   printf '\n[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
@@ -23,7 +24,11 @@ run_local() {
   log "Gate local: build + smoke auth"
   cd "$FRONTEND_DIR"
   npm run build
-  npm run cypress:run:new:smoke-auth -- --config "baseUrl=${PROD_BASE_URL}"
+  env -u ELECTRON_RUN_AS_NODE BROWSERSLIST_IGNORE_OLD_DATA=1 \
+    npx cypress run \
+      --config-file cypress.config.cjs \
+      --config "baseUrl=${PROD_BASE_URL}" \
+      --spec "cypress/e2e/new/new-0-start/006_initUsersE2E.cy.js,cypress/e2e/new/new-0-start/009_loginFormE2E.cy.js"
 }
 
 run_staging() {
@@ -60,7 +65,7 @@ run_staging() {
     npx cypress run \
       --config-file cypress.config.cjs \
       --config "baseUrl=${STAGING_BASE_URL}" \
-      --env "SKIP_E2E_READY_CHECKS=1,SKIP_E2E_INFRA_GATE=1,E2E_PROFILE=staging" \
+      --env "SKIP_E2E_READY_CHECKS=1,SKIP_E2E_INFRA_GATE=1,E2E_PROFILE=staging,HOME_CONFIG_ORIGIN=${STAGING_HOME_CONFIG_ORIGIN}" \
       --spec "${staging_specs}"
 }
 
