@@ -13,7 +13,7 @@ FRONTEND_DIR="$ROOT/frontend"
 
 MODE="${1:-all}"
 STAGING_BASE_URL="${STAGING_BASE_URL:-http://93.127.167.134:9085}"
-PROD_BASE_URL="${PROD_BASE_URL:-https://cppeurope.net}"
+PROD_BASE_URL="${PROD_BASE_URL:-https://www.cppeurope.net}"
 STAGING_HOME_CONFIG_ORIGIN="${STAGING_HOME_CONFIG_ORIGIN:-$STAGING_BASE_URL}"
 
 log() {
@@ -130,7 +130,7 @@ Usage:
 
 Environment overrides:
   STAGING_BASE_URL=http://93.127.167.134:9085
-  PROD_BASE_URL=https://cppeurope.net
+  PROD_BASE_URL=https://www.cppeurope.net
 EOF
 }
 
