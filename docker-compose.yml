@@ -58,7 +58,7 @@ services:
       - ./frontend:/usr/src/app
     environment:
       NODE_ENV: ${NODE_ENV}
-      REACT_APP_USER_API: ${REACT_APP_USER_API}
+      REACT_APP_USER_API: ${REACT_APP_USER_API:-/api/users}
       USER_BACKEND_HOST: ${USER_BACKEND_HOST}
       USER_BACKEND_PORT: ${USER_BACKEND_PORT}
       # Home-config est hébergé sur Contabo en prod ; ne pas dépendre d'un service local Hostinger.

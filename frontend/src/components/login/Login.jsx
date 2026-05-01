@@ -16,16 +16,19 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const dispatch = useDispatch();
   const { loading, error } = useSelector((state) => state.auth);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitError('');
     console.log('Tentative de connexion avec :', { email, password, rememberMe });
 
     if (!email || !password) {
       console.error('Email et mot de passe requis');
+      setSubmitError('Email et mot de passe requis');
       return;
     }
 
@@ -68,9 +71,11 @@ const Login = () => {
         console.log('[DEBUG] Connexion réussie, redirection vers :', data.redirectUrl);
       } else {
         console.error('[DEBUG] Échec de la connexion :', data ? data.message : 'Pas de data');
+        setSubmitError(data?.error || data?.message || `Connexion impossible (HTTP ${response.status})`);
       }
     } catch (error) {
       console.error('[DEBUG] Erreur réseau ou serveur :', error.message, error);
+      setSubmitError(error.message || 'Erreur réseau ou serveur');
     }
   };
 
@@ -82,7 +87,10 @@ const Login = () => {
         <input
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (submitError) setSubmitError('');
+          }}
           placeholder="Email"
           className="auth-input with-icon"
           required
@@ -95,7 +103,10 @@ const Login = () => {
         <input
           type={showPassword ? 'text' : 'password'}
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            if (submitError) setSubmitError('');
+          }}
           placeholder="Mot de passe"
           className="auth-input with-icon"
           required
@@ -125,6 +136,7 @@ const Login = () => {
       </button>
 
       {/* Messages */}
+      {submitError && <p className="error-message">Erreur : {submitError}</p>}
       {error && <p className="error-message">Erreur : {error}</p>}
     </form>
   );
