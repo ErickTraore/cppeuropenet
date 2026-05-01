@@ -100,7 +100,7 @@ describe('012 - Presse Générale - Create (option 2: UI photo + Consulter)', ()
     const titre = makeUniqueTitle();
     cy.task('log', `[012][start] titre="${titre}"`);
 
-    cy.intercept('POST', '**/api/messages/new*').as('apiCreateMessage');
+    cy.intercept('POST', /\/(api\/presse-generale\/messages|api\/messages)\/new/).as('apiCreateMessage');
     // Upload réel vers mediaGle local (docker-compose.e2e.env : PRESSE_MEDIA_GLE_HOST=host.docker.internal:7004).
     cy.intercept('POST', '**/api/media/uploadImage/**').as('apiUploadImage');
 

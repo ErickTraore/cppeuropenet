@@ -197,6 +197,7 @@ Cypress.Commands.add('apiUploadPresseGeneraleImage', (token, messageId, format =
     fixtureRelativePath: 'cypress/fixtures/e2e-1x1.png',
     port: 7004,
     apiPath: '/api/media/uploadImage/',
+    fullUrl: sameOriginApi('/api/media/uploadImage/'),
   });
 });
 
@@ -211,6 +212,7 @@ Cypress.Commands.add('apiUploadPresseGeneraleVideo', (token, messageId, format =
     fixtureRelativePath: 'cypress/fixtures/videos/video-e2e-valid-small.mp4',
     port: 7004,
     apiPath: '/api/media/uploadVideo/',
+    fullUrl: sameOriginApi('/api/media/uploadVideo/'),
   });
 });
 
