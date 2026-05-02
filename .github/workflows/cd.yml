@@ -133,12 +133,12 @@ jobs:
       - name: Run production smoke gate
         working-directory: frontend
         env:
-          PROD_BASE_URL: https://cppeurope.net
-          HOSTINGER_FRONTEND_HOST: cppeurope.net
+          PROD_BASE_URL: https://www.cppeurope.net
+          HOSTINGER_FRONTEND_HOST: www.cppeurope.net
           HOSTINGER_FRONTEND_PORT: "443"
-          HOSTINGER_USER_BACKEND_HOST: cppeurope.net
+          HOSTINGER_USER_BACKEND_HOST: www.cppeurope.net
           HOSTINGER_USER_BACKEND_PORT: "443"
-          E2E_BACKEND_HOST: cppeurope.net
+          E2E_BACKEND_HOST: www.cppeurope.net
           E2E_PORT_USER_BACKEND: "443"
           E2E_PORT_PRESSE_GENERALE: "443"
           E2E_PORT_PRESSE_LOCALE: "443"
