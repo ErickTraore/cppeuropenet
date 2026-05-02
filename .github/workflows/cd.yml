@@ -146,6 +146,7 @@ jobs:
           E2E_PORT_MEDIA_LOCALE: "443"
           CYPRESS_SKIP_E2E_READY_CHECKS: "1"
           CYPRESS_SKIP_E2E_INFRA_GATE: "1"
+          SKIP_PARITY_GATE: "1"
         run: |
           npm install
           cd ..

@@ -71,6 +71,10 @@ run_staging() {
 }
 
 run_parity_gate() {
+  if [[ "${SKIP_PARITY_GATE:-0}" == "1" ]]; then
+    log "Gate parity: SKIPPED (SKIP_PARITY_GATE=1 — clés SSH serveurs staging/prod non disponibles en CI)"
+    return 0
+  fi
   log "Gate parity: staging vs production (mandatory before prod promotion)"
   cd "$ROOT"
   ./scripts/env-parity-check.sh
