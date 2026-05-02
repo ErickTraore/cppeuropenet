@@ -188,15 +188,19 @@ app.use((req, res, next) => {
 });
 
 // JSON + upload user-media-profile : même origine que le front (évite CORS navigateur / E2E).
-// En staging (CONTABO_PATH_PREFIX=/cppeurope-staging), les appels UMP sont réécrits en
-// /cppeurope-staging/api/media/... afin que le nginx Contabo les route vers le backend staging
-// (port 17007) et non vers le backend production (port 7007).
+// Staging  (CONTABO_PATH_PREFIX=/cppeurope-staging) : réécriture → /cppeurope-staging/api/media/...
+// Production (pas de préfixe)                       : réécriture → /api/media/...
+// Dans les deux cas, le nginx Contabo possède une règle regex
+// ^/[cppeurope-staging/]?api/media/(uploadImageProfile|mediaProfile) qui route vers
+// le bon backend (port 17007 staging / port 7007 prod) sans nécessiter de route
+// /api/user-media-profile/ dans la config Contabo manuellement déployée.
 app.use((req, res, next) => {
   const o = req.originalUrl || '';
   if (!o.startsWith('/api/user-media-profile')) return next();
-  const targetPath = CONTABO_PATH_PREFIX
-    ? o.replace(/^\/api\/user-media-profile/, `${CONTABO_PATH_PREFIX}/api/media`)
-    : o;
+  const targetPath = o.replace(
+    /^\/api\/user-media-profile/,
+    CONTABO_PATH_PREFIX ? `${CONTABO_PATH_PREFIX}/api/media` : '/api/media'
+  );
   proxyRawPath(req, res, MEDIA_HOST, MEDIA_PORT, targetPath, { omitOrigin: true });
 });
 
