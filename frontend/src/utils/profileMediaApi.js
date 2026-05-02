@@ -1,22 +1,21 @@
 import { resolveApiUrl } from './apiUrls';
 
 /**
- * API user-media-profile : en local sur le navigateur, même origine que le front
- * (server.dev.js / server.prod.js proxifient vers userMediaProfile-backend) pour éviter le CORS.
+ * API profile media : en navigateur on privilégie /api/media (nginx upstream stable)
+ * pour éviter les erreurs de proxy local (/api/user-media-profile) en production.
  */
 export function getProfileMediaApiBase() {
   if (typeof window !== 'undefined') {
     try {
-      // Always prefer same-origin in browser to avoid CORS issues when host is
-      // an IPv4 LAN address (ex: 10.x.x.x under Cypress/Electron).
-      return new URL('/api/user-media-profile', window.location.origin).href.replace(/\/$/, '');
+      // Same-origin path served by nginx and mapped to Contabo media backend.
+      return new URL('/api/media', window.location.origin).href.replace(/\/$/, '');
     } catch {
       /* ignore */
     }
   }
   return resolveApiUrl(
     process.env.REACT_APP_MEDIA_API,
-    'http://localhost:7017/api/user-media-profile',
+    'http://localhost:7017/api/media',
     'MEDIA_API'
   );
 }
