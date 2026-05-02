@@ -6,7 +6,7 @@ const { userOrigin, presseGenOrigin } = require('../../../support/e2eApiUrls');
 function isStagingProfile() {
   const byEnv = String(Cypress.env('E2E_PROFILE') || '').toLowerCase() === 'staging';
   const base = String(Cypress.config('baseUrl') || '').toLowerCase();
-  return byEnv || base.includes('93.127.167.134:9085');
+  return byEnv || base.includes('staging.cppeurope.net') || base.includes('178.170.13.128');
 }
 
 function presseBase() {

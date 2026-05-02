@@ -190,15 +190,15 @@ jobs:
       - name: Run staging smoke gate
         working-directory: frontend
         env:
-          STAGING_BASE_URL: http://93.127.167.134:9085
+          STAGING_BASE_URL: https://staging.cppeurope.net
           CYPRESS_SKIP_E2E_READY_CHECKS: "1"
-          HOSTINGER_FRONTEND_HOST: "93.127.167.134"
-          HOSTINGER_FRONTEND_PORT: "9085"
+          HOSTINGER_FRONTEND_HOST: "178.170.13.128"
+          HOSTINGER_FRONTEND_PORT: "443"
           HOSTINGER_FRONTEND_BASE_PATH: ""
-          HOSTINGER_USER_BACKEND_HOST: "93.127.167.134"
-          HOSTINGER_USER_BACKEND_PORT: "9085"
-          E2E_BACKEND_HOST: "93.127.167.134"
-          E2E_PORT_USER_BACKEND: "9085"
+          HOSTINGER_USER_BACKEND_HOST: "178.170.13.128"
+          HOSTINGER_USER_BACKEND_PORT: "443"
+          E2E_BACKEND_HOST: "178.170.13.128"
+          E2E_PORT_USER_BACKEND: "443"
         run: |
           npm install
           cd ..

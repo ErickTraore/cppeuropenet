@@ -6,14 +6,14 @@ set -euo pipefail
 # - Frontend stack (repo url, branch, HEAD, dirty state)
 # - userMediaProfile backend (repo url, branch, HEAD, dirty state)
 
-STAGING_FRONT_SSH="root@93.127.167.134"
+STAGING_FRONT_SSH="root@178.170.13.128"
 PROD_FRONT_SSH="administrator@77.93.152.116"
 PROD_FRONT_PORT="10037"
 
 CONTABO_SSH="root@62.171.186.233"
 CONTABO_KEY="~/.ssh/id_ed25519"
 
-STAGING_FRONT_DIR="/var/www/cppeurope-staging"
+STAGING_FRONT_DIR="/opt/hostinger-cppeurope"
 PROD_FRONT_DIR="/var/www/cppeurope-prod"
 
 STAGING_MEDIA_DIR="/opt/contabo-cppeurope/staging-compose-media-locale-ump"
