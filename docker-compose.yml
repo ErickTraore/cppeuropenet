@@ -44,7 +44,9 @@ services:
     depends_on:
       - user-backend
     ports:
+      - "80:80"
       - "${COMPOSE_NGINX_HOST_PORT}:80"
+      - "443:443"
     volumes:
       - ./nginx:/etc/nginx/
       - /etc/letsencrypt:/etc/letsencrypt:ro
