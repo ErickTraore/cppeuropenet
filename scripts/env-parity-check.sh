@@ -38,11 +38,11 @@ fetch_git_meta() {
 }
 
 fetch_git_meta_staging_front() {
-  fetch_git_meta "ssh -o BatchMode=yes ${STAGING_FRONT_SSH}" "$STAGING_FRONT_DIR"
+  fetch_git_meta "ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new ${STAGING_FRONT_SSH}" "$STAGING_FRONT_DIR"
 }
 
 fetch_git_meta_prod_front() {
-  fetch_git_meta "ssh -o BatchMode=yes -p ${PROD_FRONT_PORT} ${PROD_FRONT_SSH}" "$PROD_FRONT_DIR"
+  fetch_git_meta "ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -p ${PROD_FRONT_PORT} ${PROD_FRONT_SSH}" "$PROD_FRONT_DIR"
 }
 
 fetch_git_meta_staging_media() {
