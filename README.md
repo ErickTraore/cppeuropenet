@@ -2,12 +2,37 @@ Prerequis frontend:
 - Toujours lancer les tests E2E via la commande `e2e:cold` du package frontend.
 - Ne pas lancer directement des commandes Cypress isolees pour valider un run complet.
 - Utiliser un fichier d'environnement dedie Cypress (`frontend/.env.cypress`) au lieu des `.env` React.
+- **CRITIQUE**: Le fichier `.env.cypress` DOIT rester synchronisé avec `services-inventory.json` (source unique de vérité pour les ports).
 
-`e2e:cold` automatise: reset compose, relance de la stack, build frontend E2E, precheck, puis execution Cypress.
+`e2e:cold` automatise: extinction compose, relance de la stack, build frontend E2E, precheck, puis execution Cypress.
 
-## Procedure Developpeur (Execution)
+## 📋 Sources de Vérité (INVIOLABLES)
 
-Objectif: executer les tests E2E de facon reproductible, rigoureuse et stable.
+**Les ports ne se changent JAMAIS à la main.** Voici la hiérarchie unique de source de vérité:
+
+1. **`services-inventory.json`** (source unique pour les ports E2E locaux)
+   - Contient les ports réels exposés par Docker (presseGenerale: 7016, userMediaProfile: 7007)
+   - Ce fichier est lu par: e2eServiceEndpoints.cjs, enforce-services-inventory.js, precheck
+
+2. **`.env.cypress` et `.env.cypress.example`** (doivent être synchronisés avec inventory)
+   - Un script de garde (`enforce-services-inventory.js`) valide cette synchronisation
+   - NE JAMAIS hardcoder des ports non présents dans l'inventory
+
+3. **`contabo-cppeurope/*/docker-compose.production.env.example`** (expose réelle)
+   - Définit PROD_HOST_PORT (presseGenerale: 7016, userMediaProfile: 7007)
+   - C'est ce fichier qui détermine les ports que Docker expose en local
+
+4. **Validation (obligation hebdomadaire)**:
+   ```bash
+   node hostinger-cppeurope/frontend/scripts/enforce-services-inventory.js
+   # Exit 0 = OK, sinon = ERROR (ports hardcodés hors inventory)
+   ```
+
+## Procedure Developpeur (Execution) — 9 Etapes Rigides
+
+Objectif: Exécuter les tests E2E de façon reproductible, rigoureuse et stable. Chaque étape est séquence logique **obligatoire**. Ne jamais sauter, ni improviser.
+
+**📖 DOCUMENTATION COMPLÈTE**: Voir [PROCEDURE-E2E-9-ETAPES.md](./PROCEDURE-E2E-9-ETAPES.md) pour la procédure détaillée et rigide (source de vérité).
 
 1. Verifier le dossier de travail (terminal)
 
@@ -21,13 +46,44 @@ Verification attendue:
 - `pwd` retourne `/Users/traore/Documents/sites/sitesEnProductions.v1`.
 - `ls` affiche au minimum `contabo-cppeurope` et `hostinger-cppeurope`.
 
-2. Reinitialiser les 2 VPS (option rigoureuse recommandee)
+2. Demarrer Docker Desktop (obligatoire si Docker n'est pas deja actif)
+
+```bash
+open -a Docker
+```
+
+3. Verifier que le daemon Docker est pret (obligatoire)
+
+```bash
+for i in {1..60}; do
+  docker info >/dev/null 2>&1 && break
+  echo "[wait-docker] Docker en cours de demarrage..."
+  sleep 2
+done
+docker info >/dev/null
+echo "[ok] Docker daemon pret"
+```
+
+4. Eteindre tous les services des 2 VPS (option rigoureuse recommandee)
 
 ```bash
 bash hostinger-cppeurope/scripts/e2e-reset-two-vps.sh
 ```
 
-3. Lancer la campagne E2E complete (commande de reference)
+Note:
+- Le nom du script conserve `reset` pour compatibilite, mais son role reel ici est d'eteindre les services (`docker compose down`).
+
+5. Reallumer tous les serveurs/services arretes
+
+```bash
+npm --prefix hostinger-cppeurope/frontend run e2e:docker-up
+```
+
+Note:
+- Cette etape relance les stacks Docker Contabo locales et la stack Hostinger locale.
+- La phase 4 fait uniquement des `down`; cette phase 5 est celle qui remet les services `up`.
+
+6. Lancer la campagne E2E complete (commande de reference)
 
 ```bash
 npm --prefix hostinger-cppeurope/frontend run e2e:cold
@@ -50,13 +106,13 @@ Important pour staging:
 - Renseigner `HOSTINGER_FRONTEND_BASE_PATH=/cppeurope-staging` dans le fichier Cypress staging.
 - Avec ce prefixe, Cypress cible automatiquement `.../cppeurope-staging/api/...`.
 
-4. Valider la stabilite (3 passes consecutives)
+7. Valider la stabilite (3 passes consecutives)
 
 ```bash
 npm --prefix hostinger-cppeurope/frontend run e2e:new:stable
 ```
 
-5. Accepter ou rejeter le run
+8. Accepter ou rejeter le run
 
 Critere PASS:
 - Chaque commande se termine avec un code de sortie `0`.
@@ -67,9 +123,9 @@ Critere FAIL:
 - Un code de sortie non nul a n'importe quelle etape.
 - Absence de `All specs passed` dans le run Cypress.
 
-6. Procedure en cas d'echec
+9. Procedure en cas d'echec
 
-- Relancer d'abord l'etape 2 (reset), puis l'etape 3 (`e2e:cold`).
+- Relancer d'abord l'etape 4 (extinction), puis l'etape 5 (reallumage), puis l'etape 6 (`e2e:cold`).
 - Considerer le run invalide tant que la commande ne se termine pas avec code `0`.
 - Corriger a partir de la premiere erreur deterministe, pas a partir des logs de progression Docker.
 
