@@ -69,6 +69,10 @@ app.use((req, res, next) => {
   cors({
     origin: function (origin, callback) {
       corsDebug('CORS check for origin:', origin);
+      if (req.method === 'OPTIONS') {
+        corsDebug('CORS: requête OPTIONS acceptée');
+        return callback(null, true);
+      }
       if (!origin) {
         corsDebug('CORS: Pas d\'origin, requête acceptée');
         return callback(null, true);

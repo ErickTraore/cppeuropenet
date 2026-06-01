@@ -57,9 +57,9 @@ Cypress.Commands.add('expectAuthenticatedShell', () => {
 
 const {
   usersApi: E2E_USERS_API,
-  presseGenMessages: API_PRESSE_GEN,
-  presseLocMessages: API_PRESSE_LOC_BASE,
-  presseLocMessagesList: API_PRESSE_LOC_LIST,
+  presseGenMessages: API_POLITIQUE,
+  presseLocMessages: API_CULTUREL_BASE,
+  presseLocMessagesList: API_CULTUREL_LIST,
 } = require('./e2eApiUrls');
 
 const E2E_ADMIN = { email: 'admin2026@cppeurope.net', password: 'admin2026!' };
@@ -108,8 +108,8 @@ Cypress.Commands.add('expandPresseConsultCardByTitle', (titre, options = {}) => 
   });
 });
 
-/** Supprime un message presse générale par titre (login API, n’utilise pas la session navigateur). */
-Cypress.Commands.add('cleanupPresseGeneraleByTitle', (titre) => {
+/** Supprime un message Politique par titre (login API, n’utilise pas la session navigateur). */
+Cypress.Commands.add('cleanupPolitiqueByTitle', (titre) => {
   cy.request({
     method: 'POST',
     url: USERS_LOGIN,
@@ -119,7 +119,7 @@ Cypress.Commands.add('cleanupPresseGeneraleByTitle', (titre) => {
     const token = res.body.accessToken;
     cy.request({
       method: 'GET',
-      url: API_PRESSE_GEN,
+      url: API_POLITIQUE,
       headers: { Authorization: `Bearer ${token}` },
     }).then((r2) => {
       const messages = Array.isArray(r2.body) ? r2.body : [];
@@ -127,7 +127,7 @@ Cypress.Commands.add('cleanupPresseGeneraleByTitle', (titre) => {
       if (found) {
         cy.request({
           method: 'DELETE',
-          url: API_PRESSE_GEN + found.id,
+          url: API_POLITIQUE + found.id,
           headers: { Authorization: `Bearer ${token}` },
           failOnStatusCode: false,
         }).then((del) => {
@@ -138,8 +138,8 @@ Cypress.Commands.add('cleanupPresseGeneraleByTitle', (titre) => {
   });
 });
 
-/** Supprime un message presse locale par titre. */
-Cypress.Commands.add('cleanupPresseLocaleByTitle', (titre) => {
+/** Supprime un message Culturel par titre. */
+Cypress.Commands.add('cleanupCulturelByTitle', (titre) => {
   cy.request({
     method: 'POST',
     url: USERS_LOGIN,
@@ -149,7 +149,7 @@ Cypress.Commands.add('cleanupPresseLocaleByTitle', (titre) => {
     const token = res.body.accessToken;
     cy.request({
       method: 'GET',
-      url: sameOriginApi('/api/presse-locale/messages/?categ=presse-locale&siteKey=cppEurope'),
+      url: sameOriginApi('/api/culturel/messages/?categ=culturel&siteKey=cppEurope'),
       headers: { Authorization: `Bearer ${token}` },
     }).then((r2) => {
       const messages = Array.isArray(r2.body) ? r2.body : [];
@@ -157,7 +157,7 @@ Cypress.Commands.add('cleanupPresseLocaleByTitle', (titre) => {
       if (found) {
         cy.request({
           method: 'DELETE',
-          url: sameOriginApi(`/api/presse-locale/messages/${found.id}`),
+          url: sameOriginApi(`/api/culturel/messages/${found.id}`),
           headers: { Authorization: `Bearer ${token}` },
           failOnStatusCode: false,
         }).then((del) => {
@@ -168,12 +168,12 @@ Cypress.Commands.add('cleanupPresseLocaleByTitle', (titre) => {
   });
 });
 
-/** Création message presse générale (API directe, pour enchaîner upload média fiable côté Node). */
-Cypress.Commands.add('apiCreatePresseGeneraleMessage', (token, titre, contenu, format = 'article') => {
+/** Création message Politique (API directe, pour enchaîner upload média fiable côté Node). */
+Cypress.Commands.add('apiCreatePolitiqueMessage', (token, titre, contenu, format = 'article') => {
   return cy
     .request({
       method: 'POST',
-      url: `${API_PRESSE_GEN}new/`,
+      url: `${API_POLITIQUE}new/`,
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -186,7 +186,7 @@ Cypress.Commands.add('apiCreatePresseGeneraleMessage', (token, titre, contenu, f
     });
 });
 
-Cypress.Commands.add('apiUploadPresseGeneraleImage', (token, messageId, format = 'article-photo') => {
+Cypress.Commands.add('apiUploadPolitiqueImage', (token, messageId, format = 'article-photo') => {
   return cy.task('presseMediaUpload', {
     token,
     messageId,
@@ -201,7 +201,7 @@ Cypress.Commands.add('apiUploadPresseGeneraleImage', (token, messageId, format =
   });
 });
 
-Cypress.Commands.add('apiUploadPresseGeneraleVideo', (token, messageId, format = 'article-video') => {
+Cypress.Commands.add('apiUploadPolitiqueVideo', (token, messageId, format = 'article-video') => {
   return cy.task('presseMediaUpload', {
     token,
     messageId,
@@ -216,16 +216,16 @@ Cypress.Commands.add('apiUploadPresseGeneraleVideo', (token, messageId, format =
   });
 });
 
-Cypress.Commands.add('apiCreatePresseLocaleMessage', (token, titre, contenu) => {
+Cypress.Commands.add('apiCreateCulturelMessage', (token, titre, contenu) => {
   return cy
     .request({
       method: 'POST',
-      url: sameOriginApi('/api/presse-locale/messages/new/'),
+      url: sameOriginApi('/api/culturel/messages/new/'),
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: { title: titre, content: contenu, categ: 'presse-locale', siteKey: 'cppEurope' },
+      body: { title: titre, content: contenu, categ: 'culturel', siteKey: 'cppEurope' },
     })
     .then((res) => {
       expect(res.status).to.be.oneOf([200, 201]);
@@ -233,7 +233,7 @@ Cypress.Commands.add('apiCreatePresseLocaleMessage', (token, titre, contenu) => 
     });
 });
 
-Cypress.Commands.add('apiUploadPresseLocaleImage', (token, messageId) => {
+Cypress.Commands.add('apiUploadCulturelImage', (token, messageId) => {
   return cy.task('presseMediaUpload', {
     token,
     messageId,
@@ -247,7 +247,7 @@ Cypress.Commands.add('apiUploadPresseLocaleImage', (token, messageId) => {
   });
 });
 
-Cypress.Commands.add('apiUploadPresseLocaleVideo', (token, messageId) => {
+Cypress.Commands.add('apiUploadCulturelVideo', (token, messageId) => {
   return cy.task('presseMediaUpload', {
     token,
     messageId,
@@ -259,4 +259,38 @@ Cypress.Commands.add('apiUploadPresseLocaleVideo', (token, messageId) => {
     port: 7008,
     apiPath: '/api/media-locale/uploadVideo/',
   });
+});
+
+const moduleRouteMap = {
+  politique: {
+    consulter: '/#newpresse',
+    creer: '/#admin-presse-generale',
+  },
+  culturel: {
+    consulter: '/#newpresse-locale',
+    creer: '/#admin-presse-locale',
+  },
+};
+
+function resolveModuleRoute(moduleName, mode) {
+  const moduleKey = String(moduleName || '').toLowerCase();
+  const modeKey = String(mode || '').toLowerCase();
+  const route = moduleRouteMap[moduleKey] && moduleRouteMap[moduleKey][modeKey];
+  if (!route) {
+    throw new Error(`Route introuvable pour module=${moduleName} mode=${mode}`);
+  }
+  return route;
+}
+
+Cypress.Commands.add('visitModuleConsulter', (moduleName) => {
+  cy.visit(resolveModuleRoute(moduleName, 'consulter'));
+});
+
+Cypress.Commands.add('visitModuleCreer', (moduleName) => {
+  cy.visit(resolveModuleRoute(moduleName, 'creer'));
+});
+
+Cypress.Commands.add('expectModuleRoute', (moduleName, mode) => {
+  const route = resolveModuleRoute(moduleName, mode);
+  cy.url({ timeout: 10000 }).should('include', route.replace('/#', ''));
 });
