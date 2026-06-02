@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Réinitialise les données CPPEurope (hors page Home) :
-# - MariaDB Hostinger (Users, Profiles, Messages, …) — SequelizeMeta conservé
+# - MariaDB Ikoula (Users, Profiles, Messages, …) — SequelizeMeta conservé
 # - Contabo : presse générale (mémoire → restart), presse locale, médias, profils médias
 # - Ne touche pas au volume SQLite home-config (hero + catégories + uploads Home)
 #
 # Usage depuis la racine du dépôt :
 #   CONFIRM_RESET=yes ./scripts/reset-cppeurope-data-production.sh
 #
-# Prérequis : clé SSH vers le VPS Contabo (ex. ~/.ssh/id_ed25519), docker compose sur Hostinger.
+# Prérequis : clé SSH vers le VPS Contabo (ex. ~/.ssh/id_ed25519), docker compose sur Ikoula.
 
 set -euo pipefail
 
@@ -27,7 +27,7 @@ elif [[ -f "$HOME/.ssh/id_ed25519" ]]; then
   SSH_OPTS+=(-i "$HOME/.ssh/id_ed25519")
 fi
 
-echo "=== [1/2] MariaDB user-backend (Hostinger) ==="
+echo "=== [1/2] MariaDB user-backend (Ikoula) ==="
 ./scripts/production-compose.sh exec -T user-backend env CONFIRM_RESET=yes node scripts/reset-mariadb-content.js
 
 echo "=== [2/2] Contabo (${CONTABO_HOST}) : BDD + fichiers + restart presse générale ==="

@@ -1,7 +1,7 @@
 // Exécuté après 006_initUsersE2E et 007_initUsersE2E_2 (ordre lexicographique Cypress : 007_i < 007_s).
 // Les POST login ciblent le user-backend directement : server.dev.js côté front ne proxifie pas /api.
 
-const { userOrigin, presseGenOrigin } = require('../../../support/e2eApiUrls');
+const { userOrigin, presseGenOrigin, presseLocOrigin } = require('../../../support/e2eApiUrls');
 
 function isStagingProfile() {
   const byEnv = String(Cypress.env('E2E_PROFILE') || '').toLowerCase() === 'staging';
@@ -15,7 +15,7 @@ function presseBase() {
   return isStagingProfile() ? '' : presseGenOrigin;
 }
 
-describe('Vérification des services essentiels (Hostinger)', () => {
+describe('Vérification des services essentiels (Ikoula)', () => {
   const userApiBase = userOrigin;
   before(() => {
     cy.task('ensureFrontendProd8082');
@@ -54,7 +54,7 @@ describe('Vérification des services essentiels (Hostinger)', () => {
     });
   });
 
-  it('presse générale : POST /api/messages/new existe — sans token → 401, pas 404', () => {
+  it('politique : POST /api/messages/new existe — sans token → 401, pas 404', () => {
     const base = presseBase();
     cy.request({
       method: 'POST',
@@ -73,7 +73,7 @@ describe('Vérification des services essentiels (Hostinger)', () => {
     });
   });
 
-  it('presse générale : POST /api/presse-generale/messages/new sans token → 401 (route backend directe)', () => {
+  it('politique : POST /api/presse-generale/messages/new sans token → 401 (route backend directe)', () => {
     const base = presseBase();
     cy.request({
       method: 'POST',
@@ -85,7 +85,7 @@ describe('Vérification des services essentiels (Hostinger)', () => {
     });
   });
 
-  it('presse générale : un sous-chemin inexistant renvoie 404', () => {
+  it('politique : un sous-chemin inexistant renvoie 404', () => {
     const base = presseBase();
     cy.request({
       method: 'GET',
@@ -96,10 +96,11 @@ describe('Vérification des services essentiels (Hostinger)', () => {
     });
   });
 
-  it('presse locale : avec token admin valide, /api/presse-locale/messages/new ne doit jamais répondre 401/403/404', () => {
-    const base = presseBase();
+  it('culturel : avec token admin valide, /api/presse-locale/messages/new ne doit jamais répondre 401/403/404', () => {
+    const staging = isStagingProfile();
+    const base = staging ? '' : presseLocOrigin;
     const frontBase = String(Cypress.config('baseUrl') || '').replace(/\/$/, '');
-    const loginUrl = isStagingProfile() ? `${frontBase}/api/users/login` : `${userApiBase}/api/users/login`;
+    const loginUrl = staging ? `${frontBase}/api/users/login` : `${userApiBase}/api/users/login`;
 
     cy.request({
       method: 'POST',
@@ -113,9 +114,13 @@ describe('Vérification des services essentiels (Hostinger)', () => {
 
       // Payload volontairement invalide côté métier (content trop court) pour vérifier le contrat route+auth.
       // Si auth/routage est correct, le backend doit répondre 400, pas 401/403/404.
+      const localeCreateUrl = staging
+        ? `${base}/api/presse-locale/messages/new`
+        : `${base}/api/messages/new`;
+
       cy.request({
         method: 'POST',
-        url: `${base}/api/presse-locale/messages/new`,
+        url: localeCreateUrl,
         headers: { Authorization: `Bearer ${token}` },
         body: { title: 'xx', content: 'y', categ: 'presse-locale', siteKey: 'cppEurope' },
         failOnStatusCode: false,

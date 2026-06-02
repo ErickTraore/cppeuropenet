@@ -1,7 +1,7 @@
 /**
- * Presse Locale - Delete option 4. Cible "titre remplacé Option4" dans Gérer, supprime, vérifie.
+ * Culturel - Delete option 4. Cible "titre remplacé Option4" dans Gérer, supprime, vérifie.
  */
-describe('Presse Locale - Delete (option 4)', () => {
+describe('Culturel - Delete (option 4)', () => {
   const adminEmail = 'admin2026@cppeurope.net';
   const adminPassword = 'admin2026!';
   const { usersApi, presseLocMessages, presseLocMessagesList } = require('../../../support/e2eApiUrls');

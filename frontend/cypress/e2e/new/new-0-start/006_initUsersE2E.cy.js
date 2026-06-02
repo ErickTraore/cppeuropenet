@@ -1,5 +1,5 @@
 // IMPORTANT : lancer ce test depuis le dossier 'frontend' avec :
-// cd hostinger-cppeurope/frontend && npx cypress run --spec cypress/e2e/01_initUsersE2E.cy.js
+// cd front-cppeurope/frontend && npx cypress run --spec cypress/e2e/01_initUsersE2E.cy.js
 /**
  * 01 - Initialisation E2E :
  * - Supprime les utilisateurs admin2026@cppeurope.net et user2026@cppeurope.net s'ils existent

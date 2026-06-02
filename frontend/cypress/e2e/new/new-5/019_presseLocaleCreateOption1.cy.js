@@ -1,11 +1,11 @@
 /**
- * 019 - Presse Locale - Create (option 1)
+ * 019 - Culturel - Create (option 1)
  *
  * Version robuste: contrat front + endpoint create, sans dependance UI.
  */
 const { presseLocMessages } = require('../../../support/e2eApiUrls');
 
-describe('019 - Presse Locale - Create (option 1: contrat API stable)', () => {
+describe('019 - Culturel - Create (option 1: contrat API stable)', () => {
   before(() => {
     cy.task('ensureFrontendProd8082');
     cy.task('checkFrontPing').should('eq', 'ok');

@@ -1,4 +1,4 @@
-## File: hostinger-cppeurope/docker-compose.yml
+## File: front-cppeurope/docker-compose.yml
 ## Variables d’interpolation : docker-compose.production.env (voir docker-compose.production.env.example)
 ## Démarrage : ./scripts/production-compose.sh up -d
 services:
@@ -22,7 +22,7 @@ services:
     networks:
       - app-network
 
-  # presse générale : API sur VPS Contabo uniquement (/opt/contabo-cppeurope/…). Pas de volume Hostinger.
+  # presse générale : API sur VPS Contabo uniquement (/opt/contabo-cppeurope/…). Pas de volume Ikoula.
 
   mariadb:
     image: mariadb:11
@@ -33,7 +33,7 @@ services:
       MARIADB_PASSWORD: ${MARIADB_PASSWORD}
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
     volumes:
-      - hostinger-cppeurope-db-data:/var/lib/mysql
+      - front-cppeurope-db-data:/var/lib/mysql
     ports:
       - "${COMPOSE_MARIADB_HOST_PORT}:3306"
     networks:
@@ -49,7 +49,7 @@ services:
       - "443:443"
     volumes:
       - ./nginx:/etc/nginx/
-      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ${LETSENCRYPT_PATH:-/etc/letsencrypt}:/etc/letsencrypt:ro
     networks:
       - app-network
 
@@ -63,7 +63,7 @@ services:
       REACT_APP_USER_API: ${REACT_APP_USER_API:-/api/users}
       USER_BACKEND_HOST: ${USER_BACKEND_HOST}
       USER_BACKEND_PORT: ${USER_BACKEND_PORT}
-      # Home-config est hébergé sur Contabo en prod ; ne pas dépendre d'un service local Hostinger.
+      # Home-config est hébergé sur Contabo en prod ; ne pas dépendre d'un service local Ikoula.
       HOME_CONFIG_HOST: 62.171.186.233
       HOME_CONFIG_PORT: 7020
       PROXY_UPSTREAM_HOST_HEADER: ${PROXY_UPSTREAM_HOST_HEADER}
@@ -98,7 +98,7 @@ services:
       ADMINER_DEFAULT_SERVER: ${COMPOSE_ADMINER_DB_HOST}
 
 volumes:
-  hostinger-cppeurope-db-data:
+  front-cppeurope-db-data:
 
 networks:
   app-network:

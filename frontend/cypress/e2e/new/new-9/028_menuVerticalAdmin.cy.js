@@ -20,12 +20,12 @@ describe('menu vertical admin', () => {
 
     cy.contains('.menu-link', 'Home').should('be.visible');
     cy.contains('.menu-link', 'Presse Générale').should('be.visible');
-    cy.contains('.menu-link', 'Presse Locale').should('be.visible');
+    cy.contains('.menu-link', 'Culturel').should('be.visible');
     cy.contains('.menu-link', 'Contact').should('be.visible');
     cy.contains('.menu-link', 'ProfilePage').should('be.visible');
   });
 
-  it('affiche les sous-menus Presse Générale et Presse Locale (Gérer, Consulter, Créer)', () => {
+  it('affiche les sous-menus Presse Générale et Culturel (Gérer, Consulter, Créer)', () => {
     cy.get('.App__header__actions__hamburger button').click();
     cy.get('nav.menu.open').should('be.visible');
 

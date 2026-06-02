@@ -1,7 +1,7 @@
 /**
- * Presse Locale - Delete option 1. Cible "titre remplacé" (créé par option-1) dans Gérer, supprime, vérifie.
+ * Culturel - Delete option 1. Cible "titre remplacé" (créé par option-1) dans Gérer, supprime, vérifie.
  */
-describe('Presse Locale - Delete (option 1)', () => {
+describe('Culturel - Delete (option 1)', () => {
   const adminEmail = 'admin2026@cppeurope.net';
   const adminPassword = 'admin2026!';
   const titreRemplace = 'titre remplacé';

@@ -7,7 +7,7 @@
  * les chargements <video> ne passent pas par fetch/XHR donc cy.intercept ne les voit pas.
  * Puis <source> cohérent, lecture (muted + play + currentTime). readyState/duration ignorés en Electron headless.
  */
-describe('036 - Presse générale — Consulter après création (option 3 vidéo)', () => {
+describe('036 - Presse Générale — Consulter après création (option 3 vidéo)', () => {
   const adminEmail = 'admin2026@cppeurope.net';
   const adminPassword = 'admin2026!';
   const contenu =
@@ -37,7 +37,7 @@ describe('036 - Presse générale — Consulter après création (option 3 vidé
     titre = 'E2E-CONSULT-G-OPT3-' + Date.now();
   });
 
-  it('affiche la vidéo, getMedia + fichier mp4 OK, src valide et lecture (currentTime) sur /#newpresse', () => {
+  it('affiche la vidéo, getMedia + fichier mp4 OK, src valide et lecture (currentTime) sur route consulter presse générale', () => {
     // 1. Connexion admin (login UI)
     cy.loginByUi(adminEmail, adminPassword);
     // 2. Création de l'article via l'API
@@ -49,7 +49,7 @@ describe('036 - Presse générale — Consulter après création (option 3 vidé
         // 3. Upload de la vidéo via l'API
         return cy.apiUploadPresseGeneraleVideo(token, id, 'article-video').then((uploadRes) => {
           // 4. Consultation dans l'UI
-          cy.visit('/#newpresse');
+          cy.visitModuleConsulter('presse-generale');
           waitForTitleInConsult(titre);
           cy.contains('.presse__message__header__title', titre, { timeout: 90000 }).should('be.visible');
           cy.contains('.presse__message__header__title', titre)
@@ -64,7 +64,7 @@ describe('036 - Presse générale — Consulter après création (option 3 vidé
           cy.expandPresseConsultCardByTitle(titre, { timeout: 90000 });
           cy.contains('.presse__message__content', contenu).should('be.visible');
 
-          cy.get('@videoCard').scrollIntoView().should('be.visible').screenshot('newpresse-video-card-visible-036');
+          cy.get('@videoCard').scrollIntoView().should('be.visible').screenshot('presse générale-video-card-visible-036');
 
           // 5. Suppression (cleanup) à la toute fin
           cy.cleanupPresseGeneraleByTitle(titre);

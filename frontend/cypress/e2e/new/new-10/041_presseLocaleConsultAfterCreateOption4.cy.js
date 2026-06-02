@@ -2,7 +2,7 @@
  * 041 — Consulter après article + miniature + vidéo (presse locale).
  * Médias injectés via API multipart (mediaLocale) ; vue Consulter alignée sur 037 (presse générale).
  */
-describe('041 - Presse locale — Consulter après création (option 4 miniature + vidéo)', () => {
+describe('041 - Presse Locale — Consulter après création (option 4 miniature + vidéo)', () => {
   const adminEmail = 'admin2026@cppeurope.net';
   const adminPassword = 'admin2026!';
   const contenu =
@@ -19,7 +19,7 @@ describe('041 - Presse locale — Consulter après création (option 4 miniature
         .some((el) => (el.textContent || '').trim() === expectedTitle);
       if (exists) return;
       if (attemptsLeft <= 1) {
-        throw new Error(`titre introuvable dans Consulter locale: ${expectedTitle}`);
+        throw new Error(`titre introuvable dans Consulter presse locale: ${expectedTitle}`);
       }
       cy.wait(1500);
       cy.reload();
@@ -31,7 +31,7 @@ describe('041 - Presse locale — Consulter après création (option 4 miniature
     titre = 'E2E-CONSULT-L-OPT4-' + Date.now();
   });
 
-  it('affiche média combiné et le contenu sur /#newpresse-locale', () => {
+  it('affiche média combiné et le contenu sur route consulter presse locale', () => {
     cy.loginByUi(adminEmail, adminPassword);
     cy.dismissSessionModalIfPresent();
 
@@ -39,15 +39,17 @@ describe('041 - Presse locale — Consulter après création (option 4 miniature
       const token = win.localStorage.getItem('accessToken');
       expect(token).to.be.a('string').and.not.be.empty;
       return cy.apiCreatePresseLocaleMessage(token, titre, contenu).then((id) => {
-        return cy.apiUploadPresseLocaleImage(token, id).then(() => cy.apiUploadPresseLocaleVideo(token, id));
+        return cy
+          .apiUploadPresseLocaleImage(token, id, 'article-thumbnail-video')
+          .then(() => cy.apiUploadPresseLocaleVideo(token, id, 'article-thumbnail-video'));
       });
     });
 
-    cy.intercept('GET', '**/api/presse-locale/messages/**').as('localeMessagesList');
-    cy.visit('/#newpresse-locale');
-    cy.wait('@localeMessagesList', { timeout: 45000 }).then((interception) => {
+    cy.intercept('GET', '**/api/presse-locale/messages/**').as('presseLocaleMessagesList');
+    cy.visitModuleConsulter('presse-locale');
+    cy.wait('@presseLocaleMessagesList', { timeout: 45000 }).then((interception) => {
       const status = interception && interception.response ? interception.response.statusCode : -1;
-      expect(status, 'GET presse-locale/messages répond 200/304').to.be.oneOf([200, 304]);
+      expect(status, 'GET messages presse locale répond 200/304').to.be.oneOf([200, 304]);
 
       waitForTitleInConsult(titre);
       cy.dismissSessionModalIfPresent();

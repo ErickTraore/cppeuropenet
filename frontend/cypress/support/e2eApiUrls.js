@@ -12,7 +12,7 @@ function sameOriginBaseIfStaging() {
   if (!isBrowserRuntime()) return null;
   const byEnv = String(Cypress.env('E2E_PROFILE') || '').toLowerCase() === 'staging';
   const base = String(Cypress.config('baseUrl') || '');
-  const byUrl = /93\.127\.167\.134:9085|staging\.cppeurope\.net/i.test(base);
+  const byUrl = /staging\.cppeurope\.net/i.test(base);
   if (!byEnv && !byUrl) return null;
   try {
     return new URL(base).origin;

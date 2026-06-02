@@ -41,6 +41,6 @@ async function main() {
 
 main().catch((err) => {
   console.error(`\nPrecheck e2e KO: ${err.message}`);
-  console.error('\nRappel: demarrer les services Docker (Hostinger + Contabo), liberer les ports sur 127.0.0.1, puis relancer.');
+  console.error('\nRappel: demarrer les services Docker (Ikoula + Contabo), liberer les ports sur 127.0.0.1, puis relancer.');
   process.exit(2);
 });

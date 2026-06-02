@@ -22,10 +22,10 @@ Ce document sert pendant un incident pour diagnostiquer vite et agir sans improv
 Depuis `/var/www/cppeurope`:
 
 ```bash
-# Etat stack prod hostinger
+# Etat stack prod ikoula
 ./scripts/production-compose.sh ps
 
-# Logs principaux prod hostinger
+# Logs principaux prod ikoula
 ./scripts/production-compose.sh logs --tail=120 nginx
 ./scripts/production-compose.sh logs --tail=120 user-backend
 ./scripts/production-compose.sh logs --tail=120 frontend

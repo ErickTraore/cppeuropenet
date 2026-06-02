@@ -2,7 +2,7 @@
  * 034 — Après création option 1 (texte), la page Consulter affiche le titre et le contenu.
  * Nettoyage API pour ne pas polluer les chaînes 010/011.
  */
-describe('034 - Presse générale — Consulter après création (option 1)', () => {
+describe('034 - Presse Générale — Consulter après création (option 1)', () => {
   const { usersApi, presseGenMessages } = require('../../../support/e2eApiUrls');
   const loginUrl = `${usersApi}/login`;
   const adminEmail = 'admin2026@cppeurope.net';
@@ -16,7 +16,7 @@ describe('034 - Presse générale — Consulter après création (option 1)', ()
     titre = 'E2E-CONSULT-G-OPT1-' + Date.now();
   });
 
-  it('affiche le titre et le contenu sur /#newpresse', () => {
+  it('affiche le titre et le contenu sur route consulter presse générale', () => {
     let creationSucceeded = false;
 
     cy.request({
@@ -47,7 +47,7 @@ describe('034 - Presse générale — Consulter après création (option 1)', ()
     cy.loginByUi(adminEmail, adminPassword);
     cy.dismissSessionModalIfPresent();
 
-    cy.visit('/#newpresse');
+    cy.visitModuleConsulter('presse-generale');
 
     cy.then(() => {
       if (creationSucceeded) {

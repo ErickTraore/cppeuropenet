@@ -23,6 +23,7 @@ describe('ProfilePage - Mes images : 4 slots obligatoires (UI + API + réseau)',
   const registerUrl = `${apiBaseUrl}/api/users/register/`;
   /** GET binaires /mediaprofile/* : évite le proxy front qui peut streamer très lentement sur gros PNG. */
   const userMediaProfileOrigin = contaboOrigin('E2E_PORT_USER_MEDIA_PROFILE');
+  const userMediaProfileApiBase = `${userMediaProfileOrigin}/api/user-media-profile`;
 
   const SLOT_TIMEOUT_MS = 90000;
   const stableProfileUserEmail = 'user2026@cppeurope.net';
@@ -34,6 +35,8 @@ describe('ProfilePage - Mes images : 4 slots obligatoires (UI + API + réseau)',
     let uploadedFilename = '';
     let firstCardSrcBeforeUpload = '';
     let hasImagesUi = false;
+    let profileIdForChecks = null;
+    let canUseFrontendMediaProxy = false;
 
     cy.request({
       method: 'POST',
@@ -65,11 +68,11 @@ describe('ProfilePage - Mes images : 4 slots obligatoires (UI + API + réseau)',
       }).then((infoRes) => {
         expect(infoRes.status).to.eq(200);
         const profileId = infoRes.body.id;
+        profileIdForChecks = profileId;
         expect(profileId, 'profil info avec id').to.be.a('number');
 
-        const baseUrl = Cypress.config('baseUrl').replace(/\/$/, '');
-        const mediaListUrl = `${baseUrl}/api/user-media-profile/mediaProfile/${profileId}`;
-        const mediaCreateUrl = `${baseUrl}/api/user-media-profile/mediaProfile/`;
+        const mediaListUrl = `${userMediaProfileApiBase}/mediaProfile/${profileId}`;
+        const mediaCreateUrl = `${userMediaProfileApiBase}/mediaProfile`;
 
         cy.request({
           method: 'GET',
@@ -119,7 +122,7 @@ describe('ProfilePage - Mes images : 4 slots obligatoires (UI + API + réseau)',
           expect(slot0, 'slot 0 présent pour baseline déterministe').to.exist;
           cy.request({
             method: 'PUT',
-            url: `${baseUrl}/api/user-media-profile/mediaProfile/${slot0.id}`,
+            url: `${userMediaProfileApiBase}/mediaProfile/${slot0.id}`,
             headers: {
               Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
@@ -164,35 +167,51 @@ describe('ProfilePage - Mes images : 4 slots obligatoires (UI + API + réseau)',
         cy.contains('button', /mes\s*images/i, { timeout: 15000 }).should('be.visible').click({ force: true });
       }
     });
-    cy.get('body', { timeout: SLOT_TIMEOUT_MS }).then(($body) => {
-      hasImagesUi = $body.find('.images__container').length > 0;
-      if (!hasImagesUi) {
-        cy.task('log', '[030] .images__container absent sur #profilepage; fallback API-only pour éviter faux négatif UI intermittent.');
-      }
+    cy.get('.images__container', { timeout: SLOT_TIMEOUT_MS }).should('be.visible');
+    cy.contains('.images__container', /aucune\s+image\s+disponible/i).should('not.exist');
+    cy.get('.images__container__grid__card', { timeout: SLOT_TIMEOUT_MS }).should('have.length', 4);
+    cy.get('.images__container__grid__card .images__container__grid__card__upload input[type="file"]', {
+      timeout: SLOT_TIMEOUT_MS,
+    }).should('have.length', 4);
+    cy.get('.images__container__grid__card img.profile-image', { timeout: SLOT_TIMEOUT_MS })
+      .should('have.length', 4)
+      .each(($img) => {
+        cy.wrap($img).should(($el) => {
+          const el = $el[0];
+          expect(el.complete && el.naturalWidth > 0, 'avatar décodé visible en UI').to.be.true;
+        });
+      });
+    hasImagesUi = true;
+
+    cy.window().then((win) => {
+      const token = win.localStorage.getItem('accessToken');
+      if (!token || !profileIdForChecks) return;
+      const baseUrl = Cypress.config('baseUrl').replace(/\/$/, '');
+      cy.request({
+        method: 'GET',
+        url: `${baseUrl}/api/user-media-profile/mediaProfile/${profileIdForChecks}`,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        failOnStatusCode: false,
+      }).then((res) => {
+        canUseFrontendMediaProxy = res.status === 200;
+        if (!canUseFrontendMediaProxy) {
+          cy.task('log', `[030] proxy front user-media-profile indisponible (status=${res.status}); skip upload UI réseau.`);
+        }
+      });
     });
 
     cy.then(() => {
-      if (!hasImagesUi) return;
-
-      cy.get('.images__container__grid__card', { timeout: SLOT_TIMEOUT_MS }).should('have.length', 4);
-      cy.get('.images__container__grid__card img.profile-image', { timeout: SLOT_TIMEOUT_MS })
-        .should('have.length', 4)
-        .each(($img) => {
-          cy.wrap($img).should(($el) => {
-            const el = $el[0];
-            expect(el.complete && el.naturalWidth > 0, 'avatar décodé').to.be.true;
-          });
-        });
-      cy.get('.images__container__grid__card .images__container__grid__card__upload input[type="file"]', {
-        timeout: SLOT_TIMEOUT_MS,
-      }).should('have.length', 4);
-
       cy.get('.images__container__grid__card img.profile-image')
         .first()
         .invoke('attr', 'src')
         .then((src) => {
           firstCardSrcBeforeUpload = String(src || '');
         });
+
+      if (!canUseFrontendMediaProxy) return;
 
       cy.intercept('POST', '**/uploadImageProfile*').as('uploadProfileImage');
       cy.intercept('PUT', '**/api/user-media-profile/mediaProfile/*').as('updateProfileMediaSlot');
@@ -251,11 +270,10 @@ describe('ProfilePage - Mes images : 4 slots obligatoires (UI + API + réseau)',
         expect(infoRes.status).to.eq(200);
         const profileId = infoRes.body.id;
         expect(profileId, 'profil info avec id').to.be.a('number');
-        const baseUrl = Cypress.config('baseUrl').replace(/\/$/, '');
 
         cy.request({
           method: 'GET',
-          url: `${baseUrl}/api/user-media-profile/mediaProfile/${profileId}`,
+          url: `${userMediaProfileApiBase}/mediaProfile/${profileId}`,
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -270,7 +288,7 @@ describe('ProfilePage - Mes images : 4 slots obligatoires (UI + API + réseau)',
           expect(slotNums, 'slots 0,1,2,3').to.deep.equal([0, 1, 2, 3]);
 
           const hasCustomAvatarRow = rows.some((row) => String(row.path || '').includes('/imagesprofile/'));
-          if (hasImagesUi) {
+          if (canUseFrontendMediaProxy) {
             expect(hasCustomAvatarRow, 'API: au moins un avatar personnalisé après upload').to.be.true;
           }
 

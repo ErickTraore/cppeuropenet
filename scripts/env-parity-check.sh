@@ -13,7 +13,7 @@ PROD_FRONT_PORT="10037"
 CONTABO_SSH="root@62.171.186.233"
 CONTABO_KEY="~/.ssh/id_ed25519"
 
-STAGING_FRONT_DIR="/opt/hostinger-cppeurope"
+STAGING_FRONT_DIR="/opt/front-cppeurope"
 PROD_FRONT_DIR="/var/www/cppeurope-prod"
 
 STAGING_MEDIA_DIR="/opt/contabo-cppeurope/staging-compose-media-locale-ump"

@@ -38,6 +38,11 @@ media-backend/public/mediaprofile/
 cypress/screenshots/
 cypress/videos/
 frontend/cypress/screenshots/
+
+# Certificats SSL locaux auto-signés (générés par scripts/generate-local-certs.sh)
+# Ne jamais committer des fichiers .pem
+nginx/certs/*.pem
+nginx/certs/letsencrypt/
 frontend/cypress/videos/
 frontend/cypress/tmp/
 

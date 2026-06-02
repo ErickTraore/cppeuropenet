@@ -11,8 +11,8 @@ echo "\n--- Statut des services Docker Compose ---"
 ./scripts/production-compose.sh ps
 
 # Vérification de l'accessibilité HTTP du site et de l'API
-SITE_URL="https://hostinger-cppeurope.net"
-API_URL="https://hostinger-cppeurope.net/api"
+SITE_URL="https://front-cppeurope.net"
+API_URL="https://front-cppeurope.net/api"
 
 echo "\n--- Test HTTP du site principal ---"
 curl -I --max-time 10 "$SITE_URL"

@@ -1,4 +1,4 @@
-# File: hostinger-cppeurope/docker-compose.dev.yml
+# File: front-cppeurope/docker-compose.dev.yml
 # Variables : docker-compose.development.env (voir docker-compose.development.env.example)
 # Démarrage : ./scripts/dev-compose.sh up -d
 

@@ -161,11 +161,11 @@ jobs:
           STAGING_BASE_URL: https://staging.cppeurope.net
           CYPRESS_SKIP_E2E_READY_CHECKS: "1"
           # Vars used by cypress.config.cjs to build baseUrl on Linux CI (no darwin IPv4 fallback)
-          HOSTINGER_FRONTEND_HOST: "178.170.13.128"
-          HOSTINGER_FRONTEND_PORT: "443"
-          HOSTINGER_FRONTEND_BASE_PATH: ""
-          HOSTINGER_USER_BACKEND_HOST: "178.170.13.128"
-          HOSTINGER_USER_BACKEND_PORT: "443"
+          IKOULA_FRONTEND_HOST: "178.170.13.128"
+          IKOULA_FRONTEND_PORT: "443"
+          IKOULA_FRONTEND_BASE_PATH: ""
+          IKOULA_USER_BACKEND_HOST: "178.170.13.128"
+          IKOULA_USER_BACKEND_PORT: "443"
           E2E_BACKEND_HOST: "178.170.13.128"
           E2E_PORT_USER_BACKEND: "443"
         run: |

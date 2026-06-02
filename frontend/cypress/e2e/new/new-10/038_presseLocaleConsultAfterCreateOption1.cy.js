@@ -1,7 +1,7 @@
 /**
- * 038 — Après création presse locale option 1 (texte), /#newpresse-locale affiche titre + contenu.
+ * 038 — Après création presse locale option 1 (texte), route consulter presse locale affiche titre + contenu.
  */
-describe('038 - Presse locale — Consulter après création (option 1)', () => {
+describe('038 - Presse Locale — Consulter après création (option 1)', () => {
   const adminEmail = 'admin2026@cppeurope.net';
   const adminPassword = 'admin2026!';
   const contenu =
@@ -18,7 +18,7 @@ describe('038 - Presse locale — Consulter après création (option 1)', () => 
         .some((el) => (el.textContent || '').trim() === expectedTitle);
       if (exists) return;
       if (attemptsLeft <= 1) {
-        throw new Error(`titre introuvable dans Consulter locale: ${expectedTitle}`);
+        throw new Error(`titre introuvable dans Consulter presse locale: ${expectedTitle}`);
       }
       cy.wait(1500);
       cy.reload();
@@ -30,7 +30,7 @@ describe('038 - Presse locale — Consulter après création (option 1)', () => 
     titre = 'E2E-CONSULT-L-OPT1-' + Date.now();
   });
 
-  it('affiche le titre et le contenu sur /#newpresse-locale', () => {
+  it('affiche le titre et le contenu sur route consulter presse locale', () => {
     cy.loginByUi(adminEmail, adminPassword);
     cy.dismissSessionModalIfPresent();
 
@@ -40,9 +40,9 @@ describe('038 - Presse locale — Consulter après création (option 1)', () => 
       return cy.apiCreatePresseLocaleMessage(token, titre, contenu);
     });
 
-    cy.intercept('GET', '**/api/presse-locale/messages/**').as('localeMessagesList');
-    cy.visit('/#newpresse-locale');
-    cy.wait('@localeMessagesList', { timeout: 45000 }).then((interception) => {
+    cy.intercept('GET', '**/api/presse-locale/messages/**').as('presseLocaleMessagesList');
+    cy.visitModuleConsulter('presse-locale');
+    cy.wait('@presseLocaleMessagesList', { timeout: 45000 }).then((interception) => {
       const status = interception && interception.response ? interception.response.statusCode : -1;
       if (status === 404) {
         cy.get('div.App.authenticated', { timeout: 30000 }).should('exist');

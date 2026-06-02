@@ -15,17 +15,24 @@ const inventory = path.join(__dirname, '..', 'services-inventory.json');
 console.log(`
 === E2E — après reboot (checklist) ===
 
-1. Démarrer Docker Desktop et attendre qu’il soit prêt.
-2. Monter les stacks (automatisé) :
-     npm run e2e:docker-up
-   (lit services-inventory.json : chaque dossier contabo + docker-compose Hostinger racine.)
+1. Depuis zéro (après reboot) :
+  npm run e2e:from-boot
+   Cette commande inclut les garde-fous:
+   - attente réelle Docker daemon,
+   - neutralisation DOCKER_API_VERSION stale,
+   - génération auto des certs locaux nginx si absents,
+   - docker-up + run E2E complet.
+
+2. Alternative manuelle :
+  npm run e2e:docker-up
+   (lit services-inventory.json : chaque dossier contabo + docker-compose Ikoula racine.)
    Ports attendus : voir
    ${inventory}
-3. Commandes e2e (même chose depuis la racine hostinger-cppeurope/ ou depuis frontend/) :
-   • Depuis zéro (Docker vide) : npm run e2e:from-boot
-   • Stacks déjà up : npm run e2e:cold
 
-   Rappel texte (cette liste) : npm run e2e:boot-checklist — dispo à la racine hostinger-cppeurope et dans frontend.
+3. Si stacks déjà up :
+  npm run e2e:cold
+
+   Rappel texte (cette liste) : npm run e2e:boot-checklist — dispo à la racine front-cppeurope et dans frontend.
 
    Ou étape par étape :
      npm run e2e:ensure-build

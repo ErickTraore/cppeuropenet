@@ -26,7 +26,7 @@ ls
 
 **✅ Résultat attendu:**
 - `pwd` → `/Users/traore/Documents/sites/sitesEnProductions.v1`
-- `ls` affiche `contabo-cppeurope` et `hostinger-cppeurope`
+- `ls` affiche `contabo-cppeurope` et `front-cppeurope`
 
 **❌ Sinon STOP**: Répertoire invalide. Procédure non applicable.
 
@@ -64,7 +64,7 @@ echo "[ok] Docker daemon pret"
 ## Étape 4 — Éteindre COMPLÈTEMENT tous les services
 
 ```bash
-bash hostinger-cppeurope/scripts/e2e-reset-two-vps.sh
+bash front-cppeurope/scripts/e2e-reset-two-vps.sh
 ```
 
 **✅ Logs attendus**: Messages `[eteindre]` pour chaque service.  
@@ -87,7 +87,7 @@ docker compose down  # dans chaque dossier de service
 ## Étape 5 — Réallumer TOUS les serveurs/services
 
 ```bash
-npm --prefix hostinger-cppeurope/frontend run e2e:docker-up
+npm --prefix front-cppeurope/frontend run e2e:docker-up
 ```
 
 **✅ Logs attendus**:
@@ -128,7 +128,7 @@ docker logs presseGenerale-backend-presse-generale-backend-1
 ## Étape 6a — Valider la synchronisation .env.cypress
 
 ```bash
-node hostinger-cppeurope/frontend/scripts/enforce-services-inventory.js
+node front-cppeurope/frontend/scripts/enforce-services-inventory.js
 ```
 
 **✅ Résultat attendu**: Code de sortie `0` (aucune erreur)
@@ -138,11 +138,11 @@ node hostinger-cppeurope/frontend/scripts/enforce-services-inventory.js
 - Cela signifie `.env.cypress` n'est pas synchronisé avec `services-inventory.json`
 - **FIX**:
   ```bash
-  cp hostinger-cppeurope/frontend/.env.cypress.example hostinger-cppeurope/frontend/.env.cypress
+  cp front-cppeurope/frontend/.env.cypress.example front-cppeurope/frontend/.env.cypress
   ```
 - Relancer le garde-fou jusqu'à exit 0:
   ```bash
-  node hostinger-cppeurope/frontend/scripts/enforce-services-inventory.js
+  node front-cppeurope/frontend/scripts/enforce-services-inventory.js
   # Exit 0? Excellent, continuer.
   ```
 
@@ -151,7 +151,7 @@ node hostinger-cppeurope/frontend/scripts/enforce-services-inventory.js
 ## Étape 6b — Lancer la campagne E2E complète
 
 ```bash
-npm --prefix hostinger-cppeurope/frontend run e2e:cold
+npm --prefix front-cppeurope/frontend run e2e:cold
 ```
 
 **✅ Logs attendus**:
@@ -176,7 +176,7 @@ npm --prefix hostinger-cppeurope/frontend run e2e:cold
 ## Étape 7 — Valider la stabilité (3 passes consécutives)
 
 ```bash
-npm --prefix hostinger-cppeurope/frontend run e2e:new:stable
+npm --prefix front-cppeurope/frontend run e2e:new:stable
 ```
 
 **✅ Résultat final attendu**: `ALL_GREEN` (tous les runs 1, 2, 3 passent complètement)
@@ -219,31 +219,31 @@ Seuls les **bugs INFRA** bloquent (ports inaccessibles, services down).
 
 #### 1️⃣ Arrêt complet (Étape 4)
 ```bash
-bash hostinger-cppeurope/scripts/e2e-reset-two-vps.sh
+bash front-cppeurope/scripts/e2e-reset-two-vps.sh
 ```
 **Attendre** que TOUS les conteneurs soient arrêtés (vérifier avec `docker ps`).
 
 #### 2️⃣ Redémarrage complet (Étape 5)
 ```bash
-npm --prefix hostinger-cppeurope/frontend run e2e:docker-up
+npm --prefix front-cppeurope/frontend run e2e:docker-up
 ```
 **Vérifier** que les ports sont corrects (Étape 5 complète).
 
 #### 3️⃣ Validation infra (Étape 6a)
 ```bash
-node hostinger-cppeurope/frontend/scripts/enforce-services-inventory.js
+node front-cppeurope/frontend/scripts/enforce-services-inventory.js
 ```
 
 Si exit non 0:
 ```bash
-cp hostinger-cppeurope/frontend/.env.cypress.example hostinger-cppeurope/frontend/.env.cypress
-node hostinger-cppeurope/frontend/scripts/enforce-services-inventory.js
+cp front-cppeurope/frontend/.env.cypress.example front-cppeurope/frontend/.env.cypress
+node front-cppeurope/frontend/scripts/enforce-services-inventory.js
 # Relancer jusqu'à exit 0
 ```
 
 #### 4️⃣ Re-test E2E (Étape 6b)
 ```bash
-npm --prefix hostinger-cppeurope/frontend run e2e:cold
+npm --prefix front-cppeurope/frontend run e2e:cold
 ```
 
 ### Diagnostic avancé (seulement si on arrive ici)

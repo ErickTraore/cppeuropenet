@@ -4,7 +4,7 @@ Prerequis frontend:
 - Utiliser un fichier d'environnement dedie Cypress (`frontend/.env.cypress`) au lieu des `.env` React.
 - **CRITIQUE**: Le fichier `.env.cypress` DOIT rester synchronisé avec `services-inventory.json` (source unique de vérité pour les ports).
 
-`e2e:cold` automatise: extinction compose, relance de la stack, build frontend E2E, precheck, puis execution Cypress.
+`e2e:cold` automatise: extinction complete des deux VPS locaux (Ikoula + Contabo), relance complete des stacks Docker, build frontend E2E, precheck, puis execution Cypress en fail-fast (arret a la premiere erreur).
 
 ## 📋 Sources de Vérité (INVIOLABLES)
 
@@ -24,7 +24,7 @@ Prerequis frontend:
 
 4. **Validation (obligation hebdomadaire)**:
    ```bash
-   node hostinger-cppeurope/frontend/scripts/enforce-services-inventory.js
+   node front-cppeurope/frontend/scripts/enforce-services-inventory.js
    # Exit 0 = OK, sinon = ERROR (ports hardcodés hors inventory)
    ```
 
@@ -33,6 +33,20 @@ Prerequis frontend:
 Objectif: Exécuter les tests E2E de façon reproductible, rigoureuse et stable. Chaque étape est séquence logique **obligatoire**. Ne jamais sauter, ni improviser.
 
 **📖 DOCUMENTATION COMPLÈTE**: Voir [PROCEDURE-E2E-9-ETAPES.md](./PROCEDURE-E2E-9-ETAPES.md) pour la procédure détaillée et rigide (source de vérité).
+
+Demarrage a froid recommande (apres reboot machine) :
+
+```bash
+npm run e2e:from-boot
+```
+
+Cette commande applique automatiquement les garde-fous suivants :
+- attend le daemon Docker (pas seulement l'ouverture de Docker Desktop),
+- neutralise une variable DOCKER_API_VERSION stale qui casse les appels Docker,
+- regenere les certificats locaux nginx si absents,
+- puis lance la sequence e2e complete.
+
+Si vous lancez la procedure manuelle 1->9, conservez les etapes ci-dessous.
 
 1. Verifier le dossier de travail (terminal)
 
@@ -44,30 +58,67 @@ ls
 
 Verification attendue:
 - `pwd` retourne `/Users/traore/Documents/sites/sitesEnProductions.v1`.
-- `ls` affiche au minimum `contabo-cppeurope` et `hostinger-cppeurope`.
+- `ls` affiche au minimum `contabo-cppeurope` et `front-cppeurope`.
 
-2. Demarrer Docker Desktop (obligatoire si Docker n'est pas deja actif)
+2. Demarrer Docker Desktop (lancement uniquement, pas encore de validation)
+
+2.1. Ouvrir l'application Docker Desktop
 
 ```bash
 open -a Docker
+echo "[docker] commande de lancement envoyee"
 ```
 
-3. Verifier que le daemon Docker est pret (obligatoire)
+2.2. Verifier que l'application a bien ete demandee au systeme
+
+```bash
+echo "[docker] Docker Desktop doit maintenant se lancer"
+sleep 5
+```
+
+2.3. Ne pas avancer tant que le daemon n'est pas pret
+
+```bash
+docker info >/dev/null 2>&1 && echo "[docker] daemon deja pret" || echo "[docker] daemon pas encore pret"
+```
+
+3. Verifier que le daemon Docker devient disponible (validation obligatoire)
+
+3.1. Faire un test immediat de disponibilite
+
+```bash
+docker info >/dev/null 2>&1 && echo "[docker] daemon accessible" || echo "[docker] attente du daemon"
+```
+
+3.2. Boucler tant que Docker n'est pas pret, avec etat visible
 
 ```bash
 for i in {1..60}; do
-  docker info >/dev/null 2>&1 && break
-  echo "[wait-docker] Docker en cours de demarrage..."
+  if docker info >/dev/null 2>&1; then
+    echo "[docker] daemon pret a l'iteration $i/60"
+    break
+  fi
+  echo "[docker] iteration $i/60: demarrage en cours"
   sleep 2
 done
-docker info >/dev/null
-echo "[ok] Docker daemon pret"
+```
+
+3.3. Confirmer le verdict final
+
+```bash
+docker info >/dev/null && echo "[ok] Docker daemon pret" || echo "[erreur] Docker n'est pas pret"
+```
+
+3.4. Si le daemon reste indisponible, arreter la procedure et aller au diagnostic
+
+```bash
+docker info >/dev/null || exit 1
 ```
 
 4. Eteindre tous les services des 2 VPS (option rigoureuse recommandee)
 
 ```bash
-bash hostinger-cppeurope/scripts/e2e-reset-two-vps.sh
+bash front-cppeurope/scripts/e2e-reset-two-vps.sh
 ```
 
 Note:
@@ -76,40 +127,40 @@ Note:
 5. Reallumer tous les serveurs/services arretes
 
 ```bash
-npm --prefix hostinger-cppeurope/frontend run e2e:docker-up
+npm --prefix front-cppeurope/frontend run e2e:docker-up
 ```
 
 Note:
-- Cette etape relance les stacks Docker Contabo locales et la stack Hostinger locale.
+- Cette etape relance les stacks Docker Contabo locales et la stack Ikoula locale.
 - La phase 4 fait uniquement des `down`; cette phase 5 est celle qui remet les services `up`.
 
 6. Lancer la campagne E2E complete (commande de reference)
 
 ```bash
-npm --prefix hostinger-cppeurope/frontend run e2e:cold
+npm --prefix front-cppeurope/frontend run e2e:cold
 ```
 
 Pour preparer le fichier d'environnement Cypress local (une seule fois):
 
 ```bash
-cp hostinger-cppeurope/frontend/.env.cypress.example hostinger-cppeurope/frontend/.env.cypress
+cp front-cppeurope/frontend/.env.cypress.example front-cppeurope/frontend/.env.cypress
 ```
 
 Pour staging (fichier dedie):
 
 ```bash
-cp hostinger-cppeurope/frontend/.env.cypress.staging.example hostinger-cppeurope/frontend/.env.cypress.staging
-CYPRESS_ENV_FILE=.env.cypress.staging npm --prefix hostinger-cppeurope/frontend run e2e:cold
+cp front-cppeurope/frontend/.env.cypress.staging.example front-cppeurope/frontend/.env.cypress.staging
+CYPRESS_ENV_FILE=.env.cypress.staging npm --prefix front-cppeurope/frontend run e2e:cold
 ```
 
 Important pour staging:
-- Renseigner `HOSTINGER_FRONTEND_BASE_PATH=/cppeurope-staging` dans le fichier Cypress staging.
+- Renseigner `IKOULA_FRONTEND_BASE_PATH=/cppeurope-staging` dans le fichier Cypress staging.
 - Avec ce prefixe, Cypress cible automatiquement `.../cppeurope-staging/api/...`.
 
 7. Valider la stabilite (3 passes consecutives)
 
 ```bash
-npm --prefix hostinger-cppeurope/frontend run e2e:new:stable
+npm --prefix front-cppeurope/frontend run e2e:new:stable
 ```
 
 8. Accepter ou rejeter le run
@@ -133,16 +184,16 @@ Critere FAIL:
 #############################################################################################################################################
 
 
-# HOSTINGER-CPPEUROPE.NET - Site Web PPA-CI
+# IKOULA-CPPEUROPE.NET - Site Web PPA-CI
 
-Site web de l'association HOSTINGER-CPPEUROPE.NET avec gestion de presse, authentification et profils utilisateurs.
+Site web de l'association IKOULA-CPPEUROPE.NET avec gestion de presse, authentification et profils utilisateurs.
 
 ### Dépôts Git (à ne pas confondre)
 
 | Dépôt | Rôle |
 |-------|------|
-| **[cppeuropenet](https://github.com/ErickTraore/cppeuropenet.git)** | Site principal : frontend, `user-backend`, nginx, Docker Compose Hostinger (`/var/www/cppeurope` sur le VPS site). **C’est ce dépôt-ci.** |
-| **[contabo-cppeurope](https://github.com/ErickTraore/contabo-cppeurope.git)** | Backends du **2ᵉ VPS** (Contabo) : presse générale/locale, médias, profils médias, `home-config` côté Contabo, etc. (`/opt/contabo-cppeurope` sur le serveur Contabo). **Pas** le même code que le site Hostinger. |
+| **[cppeuropenet](https://github.com/ErickTraore/cppeuropenet.git)** | Site principal : frontend, `user-backend`, nginx, Docker Compose Ikoula (`/var/www/cppeurope` sur le VPS site). **C’est ce dépôt-ci.** |
+| **[contabo-cppeurope](https://github.com/ErickTraore/contabo-cppeurope.git)** | Backends du **2ᵉ VPS** (Contabo) : presse générale/locale, médias, profils médias, `home-config` côté Contabo, etc. (`/opt/contabo-cppeurope` sur le serveur Contabo). **Pas** le même code que le site Ikoula. |
 
 ## 🏗️ Architecture
 
@@ -154,9 +205,20 @@ Site web de l'association HOSTINGER-CPPEUROPE.NET avec gestion de presse, authen
 - **Serveur web**: Nginx (reverse proxy)
 - **Déploiement**: Docker Compose
 
-### Multi-VPS (Hostinger + Contabo)
+### Multi-VPS (Ikoula + Contabo)
 
-L’application est **répartie sur au moins deux VPS** : le serveur « site » (souvent Hostinger, DNS `cppeurope.net`) et un **deuxième VPS Contabo** qui héberge presse générale/locale, APIs médias, profils médias et stockage fichiers. Le nginx du premier **proxy**e vers l’IP Contabo (`62.171.186.233`) pour ces chemins (voir `nginx/conf.d/cppeurope.conf`).
+L'application est **répartie sur au moins trois VPS** : le serveur « site » **Ikoula**, un **deuxième VPS Contabo** qui héberge presse générale/locale, APIs médias, profils médias et stockage fichiers, et **Database Mart** en production. Le nginx du premier **proxy**e vers l'IP Contabo (`62.171.186.233`) pour ces chemins (voir `nginx/conf.d/cppeurope.conf`).
+
+**Accès SSH Ikoula (VPS Staging Frontend)** — clés privées **hors dépôt**.
+
+| | |
+|--|--|
+| IP | `178.170.13.128` |
+| Nom | `Ikoula` |
+| Utilisateur | `root` |
+| Clé typique | `~/.ssh/id_ed25519` |
+| Rôle | VPS frontend staging + nginx proxy vers Contabo |
+| Déploiement | `/opt/front-cppeurope` |
 
 **Accès SSH Contabo (opérations)** — clés privées **hors dépôt**.
 
@@ -168,7 +230,16 @@ L’application est **répartie sur au moins deux VPS** : le serveur « site » 
 | Hostname | `vmi3028091` |
 
 Raccourci : `./scripts/ssh-contabo.sh` (voir le script pour les variables d’environnement).
+**Accès SSH Database Mart (VPS production)** — clés privées **hors dépôt**.
 
+| | |
+|--|--|
+| IP | `77.93.152.116` |
+| Nom | `databasemart` |
+| Port SSH | `10037` |
+| Utilisateur | `administrator` (puis `sudo -i` pour root) |
+| Clé typique | `~/.ssh/id_ed25519` |
+| Rôle | VPS production hébergeant la base de données centralisée et proxy amont HTTPS |
 **Staging** (`docker-compose.staging.yml`) : MariaDB **séparée** sur le VPS principal. Les appels vers Contabo utilisent le **préfixe de chemin** `/cppeurope-staging` (nginx `nginx/staging/`, variable `CONTABO_PATH_PREFIX` côté `server.prod.js`, URLs dans `user-backend/.env.staging`).
 
 **Contabo (2ᵉ VPS)** : toutes les APIs cppeurope ont des **backends staging** dédiés (ports loopback **17004–17007**, **17016**) et nginx route `/cppeurope-staging/…` vers eux — voir `deploy/CONTABO-VPS-STAGING.md`.
@@ -178,7 +249,7 @@ Raccourci : `./scripts/ssh-contabo.sh` (voir le script pour les variables d’en
 ```bash
 # Cloner le dépôt
 git clone <url-du-repo>
-cd hostinger-cppeurope
+cd front-cppeurope
 
 # Les fichiers `.env` / `.env.*` sont versionnés (staging) : après clone, les ajuster si besoin.
 
@@ -195,7 +266,7 @@ npm run e2e:compose up -d
 ## 📁 Structure du projet
 
 ```
-hostinger-cppeurope/
+front-cppeurope/
 ├── frontend/              # Application React
 │   ├── src/
 │   │   ├── actions/       # Redux actions
@@ -308,10 +379,10 @@ Documentation associee:
 
 ```bash
 # Exécuter les migrations user-backend
-docker exec hostinger-cppeurope-user-backend-1 npx sequelize-cli db:migrate
+docker exec front-cppeurope-user-backend-1 npx sequelize-cli db:migrate
 
 # Exécuter les migrations media-backend
-docker exec hostinger-cppeurope-media-backend-1 npx sequelize-cli db:migrate
+docker exec front-cppeurope-media-backend-1 npx sequelize-cli db:migrate
 ```
 
 ## 🔧 Développement
@@ -345,7 +416,7 @@ REACT_APP_BASE_URL=<url-base-media>
 DB_HOST=mariadb
 DB_USER=root
 DB_PASSWORD=<password>
-DB_NAME=hostinger-cppeurope
+DB_NAME=front-cppeurope
 JWT_SECRET=<secret>
 ```
 
@@ -354,7 +425,7 @@ JWT_SECRET=<secret>
 DB_HOST=mariadb
 DB_USER=root
 DB_PASSWORD=<password>
-DB_NAME=hostinger-cppeurope_media
+DB_NAME=front-cppeurope_media
 ```
 
 ## 📦 Dépendances principales
@@ -376,14 +447,14 @@ DB_NAME=hostinger-cppeurope_media
 
 ### Logs Docker
 ```bash
-docker logs hostinger-cppeurope-user-backend-1
-docker logs hostinger-cppeurope-media-backend-1
-docker logs hostinger-cppeurope-nginx-1
+docker logs front-cppeurope-user-backend-1
+docker logs front-cppeurope-media-backend-1
+docker logs front-cppeurope-nginx-1
 ```
 
 ### Base de données
 ```bash
-docker exec -it hostinger-cppeurope-mariadb-1 mysql -u root -p
+docker exec -it front-cppeurope-mariadb-1 mysql -u root -p
 ```
 
 ## ⚠️ Précautions à prendre pour une copie
@@ -445,7 +516,7 @@ Association Les Premices (PPA-CI)
 
 ---
 
-## Récap pour Cursor — VPS Hostinger / cppeurope
+## Récap pour Cursor — VPS Ikoula / cppeurope
 
 À coller en début de session Cursor sur le VPS (ou pour aligner un assistant sur le contexte prod / CD).
 

@@ -86,7 +86,7 @@ function buildEnvFromInventory() {
     E2E_PORT_MEDIA_LOCALE: envValue('E2E_PORT_MEDIA_LOCALE', findPort(inventory, (n) => n.includes('medialocale-backend'), 7008)),
     E2E_PORT_PRESSE_GENERALE: envValue('E2E_PORT_PRESSE_GENERALE', findPort(inventory, (n) => n.includes('pressegenerale-backend'), 7012)),
     E2E_PORT_PRESSE_LOCALE: envValue('E2E_PORT_PRESSE_LOCALE', findPort(inventory, (n) => n.includes('presselocale-backend'), 7005)),
-    E2E_PORT_USER_MEDIA_PROFILE: envValue('E2E_PORT_USER_MEDIA_PROFILE', findPort(inventory, (n) => n.includes('usermediaprofile-backend'), 7017)),
+    E2E_PORT_USER_MEDIA_PROFILE: envValue('E2E_PORT_USER_MEDIA_PROFILE', findPort(inventory, (n) => n.includes('usermediaprofile-backend'), 7007)),
     E2E_PORT_USER_BACKEND: envValue('E2E_PORT_USER_BACKEND', findPort(inventory, (n) => n.includes('user-backend'), 7001)),
   };
 }
@@ -98,7 +98,7 @@ function buildEnvFromCypress() {
     E2E_PORT_MEDIA_LOCALE: envValue('E2E_PORT_MEDIA_LOCALE', 7008),
     E2E_PORT_PRESSE_GENERALE: envValue('E2E_PORT_PRESSE_GENERALE', 7012),
     E2E_PORT_PRESSE_LOCALE: envValue('E2E_PORT_PRESSE_LOCALE', 7005),
-    E2E_PORT_USER_MEDIA_PROFILE: envValue('E2E_PORT_USER_MEDIA_PROFILE', 7017),
+    E2E_PORT_USER_MEDIA_PROFILE: envValue('E2E_PORT_USER_MEDIA_PROFILE', 7007),
     E2E_PORT_USER_BACKEND: envValue('E2E_PORT_USER_BACKEND', 7001),
   };
 }

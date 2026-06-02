@@ -91,8 +91,20 @@ function normalizeToFourProfileSlots(rawSlots) {
   }
 
   return PROFILE_SLOT_INDICES
-    .map((slot) => pickBestRecordForSlot(grouped.get(slot), slot))
-    .filter(Boolean);
+    .map((slot) => {
+      const best = pickBestRecordForSlot(grouped.get(slot), slot);
+      // Garantir 4 slots: créer un objet par défaut si absent
+      if (best) return best;
+      return {
+        id: `default-slot-${slot}`,
+        slot: slot,
+        path: DEFAULT_PROFILE_SLOT_PATHS[slot],
+        type: '',
+        filename: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+    });
 }
 
 function normalizeProfileMediaList(data) {

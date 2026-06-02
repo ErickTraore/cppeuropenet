@@ -1,9 +1,9 @@
 /**
  * Régression : après publication presse générale (article + photo), le hash peut rester sur
- * #admin-presse-generale alors que le menu vertical et l’horloge disparaissaient (désync token / Redux).
+ * route creer presse générale alors que le menu vertical et l’horloge disparaissaient (désync token / Redux).
  * Ce spec exige que le shell reste authentifié : App.authenticated, hamburger, cadenas, nav.menu, token LS.
  */
-describe('Presse générale — article + photo : le menu et l’horloge restent après succès', () => {
+describe('Presse Générale — article + photo : le menu et l’horloge restent après succès', () => {
   const adminEmail = 'admin2026@cppeurope.net';
   const adminPassword = 'admin2026!';
 
@@ -38,7 +38,7 @@ describe('Presse générale — article + photo : le menu et l’horloge restent
           // Upload de la photo via l'API
           cy.apiUploadPresseGeneraleImage(token, id, 'article-photo').then(() => {
             // 3) Vérifier la non-régression shell sur la page admin (création)
-            cy.visit('/#admin-presse-generale');
+            cy.visitModuleCreer('presse-generale');
             cy.expectAuthenticatedShell();
 
             // Si le modal d'inactivité apparaît, cliquer sur 'sélectionner' pour débloquer l'UI
@@ -50,16 +50,16 @@ describe('Presse générale — article + photo : le menu et l’horloge restent
 
             // Forçage d'un reload UI pour valider la persistance du shell après succès
             cy.reload();
-            cy.url({ timeout: 10000 }).should('include', 'admin-presse-generale');
+            cy.expectModuleRoute('presse-generale', 'creer');
             cy.expectAuthenticatedShell();
 
             // 4) Vérifier l'affichage du message sur la vraie page de consultation
-            cy.visit('/#newpresse');
+            cy.visitModuleConsulter('presse-generale');
             cy.expectAuthenticatedShell();
             cy.reload();
             cy.wait(2000);
             cy.contains('.presse__message__header__title', titre, { timeout: 90000 }).should('be.visible');
-            cy.url({ timeout: 10000 }).should('include', 'newpresse');
+            cy.expectModuleRoute('presse-generale', 'consulter');
             cy.expectAuthenticatedShell();
 
             // Suppression (cleanup) à la toute fin

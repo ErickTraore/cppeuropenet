@@ -2,7 +2,7 @@
 before(function () {
   cy.task('checkServerDev').then((exists) => {
     if (!exists) {
-      throw new Error('Le serveur Express dev (server.dev.js) doit être lancé dans hostinger-cppeurope/frontend avant d’exécuter ce test.');
+      throw new Error('Le serveur Express dev (server.dev.js) doit être lancé dans front-cppeurope/frontend avant d’exécuter ce test.');
     }
   });
   // Frontend inventaire : /api/ping est fourni par server.prod.js, pas par `serve` statique

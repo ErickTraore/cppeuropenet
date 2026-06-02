@@ -1,7 +1,7 @@
 /**
  * 040 — Consulter après article + vidéo (presse locale). Média via API ; vue Consulter dans le navigateur.
  */
-describe('040 - Presse locale — Consulter après création (option 3 vidéo)', () => {
+describe('040 - Presse Locale — Consulter après création (option 3 vidéo)', () => {
   const adminEmail = 'admin2026@cppeurope.net';
   const adminPassword = 'admin2026!';
   const contenu =
@@ -18,7 +18,7 @@ describe('040 - Presse locale — Consulter après création (option 3 vidéo)',
         .some((el) => (el.textContent || '').trim() === expectedTitle);
       if (exists) return;
       if (attemptsLeft <= 1) {
-        throw new Error(`titre introuvable dans Consulter locale: ${expectedTitle}`);
+        throw new Error(`titre introuvable dans Consulter presse locale: ${expectedTitle}`);
       }
       cy.wait(1500);
       cy.reload();
@@ -49,7 +49,7 @@ describe('040 - Presse locale — Consulter après création (option 3 vidéo)',
     });
   };
 
-  it('affiche la vidéo et le contenu sur /#newpresse-locale', () => {
+  it('affiche la vidéo et le contenu sur route consulter presse locale', () => {
     cy.loginByUi(adminEmail, adminPassword);
     cy.dismissSessionModalIfPresent();
 
@@ -64,11 +64,11 @@ describe('040 - Presse locale — Consulter après création (option 3 vidéo)',
 
     cy.get('@presseLocVideoId').then((id) => waitForLocaleMediaReady(id));
 
-    cy.intercept('GET', '**/api/presse-locale/messages/**').as('localeMessagesList');
-    cy.visit('/#newpresse-locale');
-    cy.wait('@localeMessagesList', { timeout: 45000 }).then((interception) => {
+    cy.intercept('GET', '**/api/presse-locale/messages/**').as('presseLocaleMessagesList');
+    cy.visitModuleConsulter('presse-locale');
+    cy.wait('@presseLocaleMessagesList', { timeout: 45000 }).then((interception) => {
       const status = interception && interception.response ? interception.response.statusCode : -1;
-      expect(status, 'GET presse-locale/messages répond 200/304').to.be.oneOf([200, 304]);
+      expect(status, 'GET messages presse locale répond 200/304').to.be.oneOf([200, 304]);
 
       waitForTitleInConsult(titre);
       cy.dismissSessionModalIfPresent();
@@ -82,7 +82,7 @@ describe('040 - Presse locale — Consulter après création (option 3 vidéo)',
         .find('video.presse__message__media__video', { timeout: 30000 })
         .should('be.visible')
         .should(($v) => {
-          expect($v[0].currentSrc, 'src vidéo locale').to.match(/\.mp4$/);
+          expect($v[0].currentSrc, 'src vidéo presse locale').to.match(/\.mp4$/);
         });
     });
 

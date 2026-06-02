@@ -232,8 +232,18 @@ const ProfilePage = () => {
     }
 
     return [0, 1, 2, 3]
-      .map((slotIndex) => bySlot.get(slotIndex))
-      .filter(Boolean);
+      .map((slotIndex) => {
+        const item = bySlot.get(slotIndex);
+        // Toujours retourner 4 slots, même avec des valeurs par défaut
+        if (item) return item;
+        return {
+          id: `placeholder-slot-${slotIndex}`,
+          slot: slotIndex,
+          path: `/mediaprofile/default/slot-${slotIndex}.png`,
+          type: '',
+          filename: '',
+        };
+      });
   };
 
   const safeSlots = pickRenderableProfileSlots(slots);

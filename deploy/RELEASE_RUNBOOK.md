@@ -19,7 +19,7 @@ Reference configuration:
 - Branche source propre et a jour.
 - CI GitHub verte sur la branche cible.
 - Acces SSH operationnels:
-  - VPS principal (Hostinger)
+  - VPS principal (Ikoula)
   - VPS Contabo (services presse/media)
 - Backups verifies avant toute release prod.
 
@@ -52,7 +52,7 @@ Depuis la racine du repo:
 ```bash
 ./scripts/staging-compose.sh up -d
 cd frontend
-npm run cypress:run:new -- --config baseUrl=http://93.127.167.134:9085
+npm run cypress:run:new -- --config baseUrl=http://<staging-url>:9085
 ```
 
 Critere de sortie:

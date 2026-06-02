@@ -1,3 +1,3 @@
-describe('09 - Cleanup E2E Presse Locale', () => {
+describe('09 - Cleanup E2E Culturel', () => {
   it('placeholder', () => {});
 });

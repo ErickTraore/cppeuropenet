@@ -22,7 +22,7 @@ permissions:
 
 jobs:
   deploy-multi-vps:
-    name: Deploy Hostinger + Contabo (staging)
+    name: Deploy Ikoula + Contabo (staging)
     runs-on: ubuntu-latest
     environment: staging
     timeout-minutes: 60
@@ -67,7 +67,7 @@ jobs:
             exit 1
           fi
 
-      - name: known_hosts (Hostinger + Contabo)
+      - name: known_hosts (Ikoula + Contabo)
         env:
           STAGING_DEPLOY_HOST: ${{ secrets.STAGING_DEPLOY_HOST }}
           STAGING_CONTABO_HOST: ${{ secrets.STAGING_CONTABO_HOST }}
@@ -115,7 +115,7 @@ jobs:
              echo '-- Vérification conteneurs Contabo (staging/proxy)'
              docker ps --format '{{.Names}}\t{{.Status}}' | grep -E 'media-staging-gle|staging-ml-ump|staging-presse-locale|staging-presse-generale|home-config-backend-home-config-backend'"
 
-      - name: Déployer Hostinger staging
+      - name: Déployer Ikoula staging
         env:
           STAGING_DEPLOY_HOST: ${{ secrets.STAGING_DEPLOY_HOST }}
           STAGING_DEPLOY_USER: ${{ secrets.STAGING_DEPLOY_USER }}
@@ -192,11 +192,11 @@ jobs:
         env:
           STAGING_BASE_URL: https://staging.cppeurope.net
           CYPRESS_SKIP_E2E_READY_CHECKS: "1"
-          HOSTINGER_FRONTEND_HOST: "178.170.13.128"
-          HOSTINGER_FRONTEND_PORT: "443"
-          HOSTINGER_FRONTEND_BASE_PATH: ""
-          HOSTINGER_USER_BACKEND_HOST: "178.170.13.128"
-          HOSTINGER_USER_BACKEND_PORT: "443"
+          IKOULA_FRONTEND_HOST: "178.170.13.128"
+          IKOULA_FRONTEND_PORT: "443"
+          IKOULA_FRONTEND_BASE_PATH: ""
+          IKOULA_USER_BACKEND_HOST: "178.170.13.128"
+          IKOULA_USER_BACKEND_PORT: "443"
           E2E_BACKEND_HOST: "178.170.13.128"
           E2E_PORT_USER_BACKEND: "443"
         run: |

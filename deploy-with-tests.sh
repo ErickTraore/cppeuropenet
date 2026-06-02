@@ -10,7 +10,7 @@ cd "$ROOT/frontend"
 
 export CI=true
 
-echo "== hostinger-cppeurope : validation frontend =="
+echo "== front-cppeurope : validation frontend =="
 echo "   Répertoire : $ROOT/frontend"
 
 echo ""

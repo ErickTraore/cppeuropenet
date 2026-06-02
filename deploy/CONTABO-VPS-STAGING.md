@@ -13,7 +13,7 @@ Tous les backends **cppeurope** ont une stack **staging** dédiée (BDD et/ou fi
 
 Fichiers utiles sur Contabo :
 
-- ` /root/hostinger-staging-jwt.env` — **JWT** alignés sur `user-backend/.env.staging` du VPS principal (pour `presseLocale` staging). Si vous changez les JWT côté Hostinger, **resynchroniser** ce fichier puis redémarrer `staging-presse-locale`.
+- ` /root/ikoula-staging-jwt.env` — **JWT** alignés sur `user-backend/.env.staging` du VPS principal (pour `presseLocale` staging). Si vous changez les JWT côté Ikoula, **resynchroniser** ce fichier puis redémarrer `staging-presse-locale`.
 
 Commandes :
 

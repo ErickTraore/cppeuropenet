@@ -1,21 +1,21 @@
 import { resolveApiUrl } from './apiUrls';
 
 /**
- * API profile media : en navigateur on privilégie /api/media (nginx upstream stable)
- * pour éviter les erreurs de proxy local (/api/user-media-profile) en production.
+ * API profile media : le profil utilisateur vit sur /api/user-media-profile.
+ * Ce préfixe est proxyfié par le front vers le backend user-media-profile en local,
+ * en E2E et en production.
  */
 export function getProfileMediaApiBase() {
   if (typeof window !== 'undefined') {
     try {
-      // Same-origin path served by nginx and mapped to Contabo media backend.
-      return new URL('/api/media', window.location.origin).href.replace(/\/$/, '');
+      return new URL('/api/user-media-profile', window.location.origin).href.replace(/\/$/, '');
     } catch {
       /* ignore */
     }
   }
   return resolveApiUrl(
     process.env.REACT_APP_MEDIA_API,
-    'http://localhost:7017/api/media',
+    'http://localhost:7007/api/user-media-profile',
     'MEDIA_API'
   );
 }

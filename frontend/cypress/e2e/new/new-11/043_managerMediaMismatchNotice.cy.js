@@ -16,12 +16,12 @@ describe('043 - Manager: incohérence média visible', () => {
     cy.window().then((win) => {
       const token = win.localStorage.getItem('accessToken');
       expect(token, 'token admin').to.be.a('string').and.not.be.empty;
-      return cy.apiCreatePresseGeneraleMessage(token, fakeTitle, fakeContent, 'article-photo').then((id) => {
+      return cy.apiCreatePolitiqueMessage(token, fakeTitle, fakeContent, 'article-photo').then((id) => {
         createdMessageId = id;
       });
     });
 
-    cy.visit('/#presse-generale');
+    cy.visitModuleCreer('politique');
     cy.expectAuthenticatedShell();
     cy.contains('.admin-title', 'GESTION PRESSE', { timeout: 30000 }).should('be.visible');
 
@@ -38,6 +38,6 @@ describe('043 - Manager: incohérence média visible', () => {
   });
 
   after(() => {
-    cy.cleanupPresseGeneraleByTitle(fakeTitle);
+    cy.cleanupPolitiqueByTitle(fakeTitle);
   });
 });

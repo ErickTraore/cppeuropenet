@@ -2,7 +2,7 @@
  * 037 — Consulter après article + miniature + vidéo (presse générale).
  * Médias injectés via API multipart ; vue Consulter validée dans le navigateur.
  */
-describe('037 - Presse générale — Consulter après création (option 4 miniature + vidéo)', () => {
+describe('037 - Presse Générale — Consulter après création (option 4 miniature + vidéo)', () => {
   const { presseGenMessages } = require('../../../support/e2eApiUrls');
   const adminEmail = 'admin2026@cppeurope.net';
   const adminPassword = 'admin2026!';
@@ -33,7 +33,7 @@ describe('037 - Presse générale — Consulter après création (option 4 minia
     titre = 'E2E-CONSULT-G-OPT4-' + Date.now();
   });
 
-  it('affiche média combiné et le contenu sur /#newpresse', () => {
+  it('affiche média combiné et le contenu sur route consulter presse générale', () => {
     cy.loginByUi(adminEmail, adminPassword);
     cy.dismissSessionModalIfPresent();
 
@@ -55,13 +55,13 @@ describe('037 - Presse générale — Consulter après création (option 4 minia
           expect(createRes.status, 'création article miniature+vidéo').to.be.oneOf([200, 201]);
           const id = createRes.body && createRes.body.id;
           expect(id, 'id message créé').to.be.a('number');
-          return cy
-            .apiUploadPresseGeneraleImage(token, id)
-            .then(() => cy.apiUploadPresseGeneraleVideo(token, id));
+                return cy
+                  .apiUploadPresseGeneraleImage(token, id, 'article-thumbnail-video')
+                  .then(() => cy.apiUploadPresseGeneraleVideo(token, id, 'article-thumbnail-video'));
         });
     });
 
-    cy.visit('/#newpresse');
+    cy.visitModuleConsulter('presse-generale');
     waitForTitleInConsult(titre);
     cy.contains('.presse__message__header__title', titre, { timeout: 120000 }).should('be.visible');
     cy.contains('.presse__message__header__title', titre)

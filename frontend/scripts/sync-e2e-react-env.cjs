@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Source unique des URLs REACT_APP_* pour les builds E2E locaux : aligné sur
- * cypress/support/e2eServiceEndpoints.cjs (+ HOSTINGER_FRONTEND_PORT).
+ * cypress/support/e2eServiceEndpoints.cjs (+ IKOULA_FRONTEND_PORT).
  * Écrit .env.production.local pour que `npm run build` embarque les mêmes cibles que Cypress.
  */
 const fs = require('fs');
@@ -14,7 +14,7 @@ const outPath = path.join(root, '.env.production.local');
 // `127.0.0.1` may be intercepted by non-project services on some setups; `localhost`
 // keeps E2E frontend/API calls on the expected local stack by default.
 const host = process.env.E2E_REACT_HOST || 'localhost';
-const frontPort = process.env.HOSTINGER_FRONTEND_PORT || '8082';
+const frontPort = process.env.IKOULA_FRONTEND_PORT || '8082';
 const profile = String(process.env.CYPRESS_E2E_PROFILE || process.env.E2E_REACT_PROFILE || 'local').toLowerCase();
 const isStagingProfile = profile === 'staging';
 

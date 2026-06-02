@@ -4,6 +4,7 @@ import { triggerFormatReset } from '../../../utils/formatController';
 import { getPresseLocaleApiRoot, getPresseLocaleMediaApiRoot } from '../../../utils/presseLocaleApi';
 
 const SITE_KEY = process.env.REACT_APP_PRESSE_LOCALE_SITE_KEY || 'cppEurope';
+const LOCALE_PHOTO_FORMAT = 'article-photo';
 
 const FormPresseLocalePhoto = () => {
   const [newMessage, setNewMessage] = useState({
@@ -34,6 +35,7 @@ const FormPresseLocalePhoto = () => {
     const formData = new FormData();
     formData.append('image', file);
     formData.append('messageId', messageId);
+    formData.append('format', LOCALE_PHOTO_FORMAT);
 
     const response = await fetch(`${getPresseLocaleMediaApiRoot()}/uploadImage/`, {
       method: 'POST',
@@ -83,6 +85,7 @@ const FormPresseLocalePhoto = () => {
           content: newMessage.content,
           categ: 'presse-locale',
           siteKey: SITE_KEY,
+          format: LOCALE_PHOTO_FORMAT,
         }),
       });
 

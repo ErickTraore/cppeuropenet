@@ -127,7 +127,7 @@ async function main() {
     process.exit(1);
   }
   const services = JSON.parse(fs.readFileSync(INVENTORY_PATH, 'utf8'));
-  const frontend = getFrontendService(services) || { name: 'frontend (hostinger)', port: 8082 };
+  const frontend = getFrontendService(services) || { name: 'frontend (ikoula)', port: 8082 };
   const backends = getBackendServices(services);
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {

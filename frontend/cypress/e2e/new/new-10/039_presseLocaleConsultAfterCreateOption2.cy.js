@@ -1,8 +1,8 @@
 /**
  * 039 — Consulter après article + photo (presse locale).
- * Image attachée via API multipart (mediaLocale) pour fiabilité ; affichage vérifié sous /#newpresse-locale.
+ * Image attachée via API multipart (mediaLocale) pour fiabilité ; affichage vérifié sous route consulter presse locale.
  */
-describe('039 - Presse locale — Consulter après création (option 2 photo)', () => {
+describe('039 - Presse Locale — Consulter après création (option 2 photo)', () => {
   const adminEmail = 'admin2026@cppeurope.net';
   const adminPassword = 'admin2026!';
   const contenu =
@@ -19,7 +19,7 @@ describe('039 - Presse locale — Consulter après création (option 2 photo)', 
         .some((el) => (el.textContent || '').trim() === expectedTitle);
       if (exists) return;
       if (attemptsLeft <= 1) {
-        throw new Error(`titre introuvable dans Consulter locale: ${expectedTitle}`);
+        throw new Error(`titre introuvable dans Consulter presse locale: ${expectedTitle}`);
       }
       cy.wait(1500);
       cy.reload();
@@ -31,7 +31,7 @@ describe('039 - Presse locale — Consulter après création (option 2 photo)', 
     titre = 'E2E-CONSULT-L-OPT2-' + Date.now();
   });
 
-  it('affiche image, titre et contenu sur /#newpresse-locale', () => {
+  it('affiche image, titre et contenu sur route consulter presse locale', () => {
     cy.loginByUi(adminEmail, adminPassword);
     cy.dismissSessionModalIfPresent();
 
@@ -43,11 +43,11 @@ describe('039 - Presse locale — Consulter après création (option 2 photo)', 
       });
     });
 
-    cy.intercept('GET', '**/api/presse-locale/messages/**').as('localeMessagesList');
-    cy.visit('/#newpresse-locale');
-    cy.wait('@localeMessagesList', { timeout: 45000 }).then((interception) => {
+    cy.intercept('GET', '**/api/presse-locale/messages/**').as('presseLocaleMessagesList');
+    cy.visitModuleConsulter('presse-locale');
+    cy.wait('@presseLocaleMessagesList', { timeout: 45000 }).then((interception) => {
       const status = interception && interception.response ? interception.response.statusCode : -1;
-      expect(status, 'GET presse-locale/messages répond 200/304').to.be.oneOf([200, 304]);
+      expect(status, 'GET messages presse locale répond 200/304').to.be.oneOf([200, 304]);
 
       waitForTitleInConsult(titre);
       cy.dismissSessionModalIfPresent();

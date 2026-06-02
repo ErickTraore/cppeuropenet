@@ -149,7 +149,7 @@ Cypress.Commands.add('cleanupCulturelByTitle', (titre) => {
     const token = res.body.accessToken;
     cy.request({
       method: 'GET',
-      url: sameOriginApi('/api/culturel/messages/?categ=culturel&siteKey=cppEurope'),
+      url: sameOriginApi('/api/presse-locale/messages/?categ=presse-locale&siteKey=cppEurope'),
       headers: { Authorization: `Bearer ${token}` },
     }).then((r2) => {
       const messages = Array.isArray(r2.body) ? r2.body : [];
@@ -157,7 +157,7 @@ Cypress.Commands.add('cleanupCulturelByTitle', (titre) => {
       if (found) {
         cy.request({
           method: 'DELETE',
-          url: sameOriginApi(`/api/culturel/messages/${found.id}`),
+          url: sameOriginApi(`/api/presse-locale/messages/${found.id}`),
           headers: { Authorization: `Bearer ${token}` },
           failOnStatusCode: false,
         }).then((del) => {
@@ -220,12 +220,12 @@ Cypress.Commands.add('apiCreateCulturelMessage', (token, titre, contenu) => {
   return cy
     .request({
       method: 'POST',
-      url: sameOriginApi('/api/culturel/messages/new/'),
+      url: sameOriginApi('/api/presse-locale/messages/new/'),
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: { title: titre, content: contenu, categ: 'culturel', siteKey: 'cppEurope' },
+      body: { title: titre, content: contenu, categ: 'presse-locale', siteKey: 'cppEurope' },
     })
     .then((res) => {
       expect(res.status).to.be.oneOf([200, 201]);
@@ -233,10 +233,11 @@ Cypress.Commands.add('apiCreateCulturelMessage', (token, titre, contenu) => {
     });
 });
 
-Cypress.Commands.add('apiUploadCulturelImage', (token, messageId) => {
+Cypress.Commands.add('apiUploadCulturelImage', (token, messageId, format = 'article-photo') => {
   return cy.task('presseMediaUpload', {
     token,
     messageId,
+    format,
     fullUrl: sameOriginApi('/api/media-locale/uploadImage/'),
     fieldName: 'image',
     fileName: 'e2e-1x1.png',
@@ -247,10 +248,11 @@ Cypress.Commands.add('apiUploadCulturelImage', (token, messageId) => {
   });
 });
 
-Cypress.Commands.add('apiUploadCulturelVideo', (token, messageId) => {
+Cypress.Commands.add('apiUploadCulturelVideo', (token, messageId, format = 'article-video') => {
   return cy.task('presseMediaUpload', {
     token,
     messageId,
+    format,
     fullUrl: sameOriginApi('/api/media-locale/uploadVideo/'),
     fieldName: 'video',
     fileName: 'video-e2e-valid-small.mp4',
@@ -261,7 +263,37 @@ Cypress.Commands.add('apiUploadCulturelVideo', (token, messageId) => {
   });
 });
 
+// Aliases alignes sur les libelles metier reels.
+Cypress.Commands.add('cleanupPresseGeneraleByTitle', (titre) => cy.cleanupPolitiqueByTitle(titre));
+Cypress.Commands.add('cleanupPresseLocaleByTitle', (titre) => cy.cleanupCulturelByTitle(titre));
+Cypress.Commands.add('apiCreatePresseGeneraleMessage', (token, titre, contenu, format = 'article') =>
+  cy.apiCreatePolitiqueMessage(token, titre, contenu, format)
+);
+Cypress.Commands.add('apiUploadPresseGeneraleImage', (token, messageId, format = 'article-photo') =>
+  cy.apiUploadPolitiqueImage(token, messageId, format)
+);
+Cypress.Commands.add('apiUploadPresseGeneraleVideo', (token, messageId, format = 'article-video') =>
+  cy.apiUploadPolitiqueVideo(token, messageId, format)
+);
+Cypress.Commands.add('apiCreatePresseLocaleMessage', (token, titre, contenu) =>
+  cy.apiCreateCulturelMessage(token, titre, contenu)
+);
+Cypress.Commands.add('apiUploadPresseLocaleImage', (token, messageId, format = 'article-photo') =>
+  cy.apiUploadCulturelImage(token, messageId, format)
+);
+Cypress.Commands.add('apiUploadPresseLocaleVideo', (token, messageId, format = 'article-video') =>
+  cy.apiUploadCulturelVideo(token, messageId, format)
+);
+
 const moduleRouteMap = {
+  'presse-generale': {
+    consulter: '/#newpresse',
+    creer: '/#admin-presse-generale',
+  },
+  'presse-locale': {
+    consulter: '/#newpresse-locale',
+    creer: '/#admin-presse-locale',
+  },
   politique: {
     consulter: '/#newpresse',
     creer: '/#admin-presse-generale',

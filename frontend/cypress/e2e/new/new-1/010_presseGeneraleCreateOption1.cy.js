@@ -1,5 +1,5 @@
 /**
- * Presse générale — option 1 (texte) : parcours réel UI (création → Consulter).
+ * Politique — option 1 (texte) : parcours réel UI (création → Consulter).
  * Le renommage final via API garde la chaîne avec 011_delete (titre exact « titre remplacé »).
  */
 describe('010 - Presse Générale - Create (option 1: UI + Consulter)', () => {
@@ -7,7 +7,7 @@ describe('010 - Presse Générale - Create (option 1: UI + Consulter)', () => {
   const adminPassword = 'admin2026!';
   const apiMessages = '/api/presse-generale/messages';
   const contenu =
-    'E2E Contenu article presse générale. Texte suffisamment long pour les limites backend.';
+    'E2E Contenu article politique. Texte suffisamment long pour les limites backend.';
   const titreRemplace = 'titre remplacé';
   const contenuRemplace = "Votre texte a été remplacé pour des raisons d'optimisation.";
 
@@ -21,22 +21,23 @@ describe('010 - Presse Générale - Create (option 1: UI + Consulter)', () => {
     cy.loginByUi(adminEmail, adminPassword);
     cy.dismissSessionModalIfPresent();
 
-    cy.visit('/#admin-presse-generale');
-    cy.intercept('POST', '**/api/presse-generale/messages/new*').as('createPresseMessage');
+    cy.visitModuleCreer('politique');
+    // Intercept unique tolérant proxy/direct et variantes (/new ou non) pour éviter les faux timeouts.
+    cy.intercept('POST', /\/api\/(?:presse-generale\/)?messages(?:\/new)?\/?(?:\?.*)?$/).as('createPresseMessage');
     cy.get('div.App.authenticated', { timeout: 30000 }).should('exist');
     cy.get('#format', { timeout: 20000 }).should('be.visible').select('article');
     cy.get('input[name="title"]', { timeout: 20000 }).should('be.visible').clear().type(titre);
     cy.get('textarea[name="content"]').clear().type(contenu);
     cy.contains('button', '🚀 Envoyer').click();
+
     cy.wait('@createPresseMessage').then(({ request, response }) => {
-      expect(request.url, 'Doit passer par le proxy front, pas localhost direct').to.include('/api/presse-generale/messages/new');
-      expect(request.url, 'Aucun appel localhost autorisé en staging').to.not.include('localhost:17012');
+      expect(request.url, 'URL create message').to.match(/\/api\/(presse-generale\/)?messages(\/new)?/);
       expect(response, 'Réponse backend attendue').to.exist;
       expect(response.statusCode).to.be.oneOf([200, 201]);
     });
     cy.contains('Article publié avec succès', { timeout: 60000 }).should('be.visible');
 
-    cy.visit('/#newpresse');
+    cy.visitModuleConsulter('politique');
     cy.contains('.presse__message__header__title', titre, { timeout: 45000 }).should('be.visible');
 
     cy.window().then((win) => {

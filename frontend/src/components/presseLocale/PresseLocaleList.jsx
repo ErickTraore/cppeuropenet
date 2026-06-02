@@ -76,7 +76,8 @@ export default function PresseLocaleList() {
         valid.map(async (p) => {
           const { media: _ignoreReduxMedia, ...presseSansMedia } = p;
           try {
-            const res = await fetch(`${mediaRoot}/getMedia/${p.id}`, {
+            const formatQuery = p?.format ? `?format=${encodeURIComponent(p.format)}` : '';
+            const res = await fetch(`${mediaRoot}/getMedia/${p.id}${formatQuery}`, {
               headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` }
             });
             if (!res.ok) return { ...presseSansMedia, media: [] };

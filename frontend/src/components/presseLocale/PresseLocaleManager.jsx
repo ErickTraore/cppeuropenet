@@ -27,7 +27,8 @@ const PresseGeneraleManager = () => {
       const media = {};
       for (const msg of messagesList) {
         try {
-          const res = await fetch(`${getPresseLocaleMediaApiRoot()}/getMedia/${msg.id}`, {
+          const formatQuery = msg?.format ? `?format=${encodeURIComponent(msg.format)}` : '';
+          const res = await fetch(`${getPresseLocaleMediaApiRoot()}/getMedia/${msg.id}${formatQuery}`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` }
           });
           if (res.ok) {
@@ -99,6 +100,7 @@ const PresseGeneraleManager = () => {
         const fd = new FormData();
         fd.append('image', imageFile);
         fd.append('messageId', editingId);
+        fd.append('format', currentMessage?.format || 'article-photo');
         await fetch(`${getPresseLocaleMediaApiRoot()}/uploadImage/`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
@@ -117,6 +119,7 @@ const PresseGeneraleManager = () => {
         const fd = new FormData();
         fd.append('video', videoFile);
         fd.append('messageId', editingId);
+        fd.append('format', currentMessage?.format || 'article-video');
         await fetch(`${getPresseLocaleMediaApiRoot()}/uploadVideo/`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },

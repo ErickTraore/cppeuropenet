@@ -277,7 +277,7 @@ async function runInfrastructureGate(options = {}) {
       ? String(options.frontHost)
       :
           process.env.CYPRESS_FRONTEND_HOST ||
-          process.env.HOSTINGER_FRONTEND_HOST ||
+          process.env.IKOULA_FRONTEND_HOST ||
           process.env.E2E_FRONTEND_HOST ||
           frontendService.host ||
           defaultBackendHost;
@@ -286,7 +286,7 @@ async function runInfrastructureGate(options = {}) {
       ? String(options.userHost)
       :
           process.env.CYPRESS_USER_BACKEND_HOST ||
-          process.env.HOSTINGER_USER_BACKEND_HOST ||
+          process.env.IKOULA_USER_BACKEND_HOST ||
           userBackendService.host ||
           defaultBackendHost;
 
@@ -294,14 +294,14 @@ async function runInfrastructureGate(options = {}) {
     options.frontPort != null
       ? parseInt(String(options.frontPort), 10)
       : parseInt(
-          process.env.HOSTINGER_FRONTEND_PORT || String(frontendService.port || 8082),
+          process.env.IKOULA_FRONTEND_PORT || String(frontendService.port || 8082),
           10,
         );
   const userPort =
     options.userPort != null
       ? parseInt(String(options.userPort), 10)
       : parseInt(
-          process.env.HOSTINGER_USER_BACKEND_PORT || String(userBackendService.healthPort || userBackendService.port || 7001),
+          process.env.IKOULA_USER_BACKEND_PORT || String(userBackendService.healthPort || userBackendService.port || 7001),
           10,
         );
   const maxWaitMs = options.maxWaitMs != null ? options.maxWaitMs : 180000;
@@ -367,8 +367,8 @@ async function runInfrastructureGate(options = {}) {
 
   const report = formatFailureReport(lastFailures, checks);
   throw new Error(
-    `Infrastructure E2E non prête après ${maxWaitMs} ms (HOSTINGER_FRONTEND=${frontHost}:${frontPort}, HOSTINGER_USER_BACKEND=${userHost}:${userPort}).\n` +
-      `Démarrer les stacks Docker (Hostinger + Contabo) et vérifier qu’aucun autre programme n’occupe ces ports.\n\n` +
+    `Infrastructure E2E non prête après ${maxWaitMs} ms (IKOULA_FRONTEND=${frontHost}:${frontPort}, IKOULA_USER_BACKEND=${userHost}:${userPort}).\n` +
+      `Démarrer les stacks Docker (Ikoula + Contabo) et vérifier qu’aucun autre programme n’occupe ces ports.\n\n` +
       report
   );
 }

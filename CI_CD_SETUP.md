@@ -1,4 +1,4 @@
-# CI/CD — guide pas à pas (hostinger-cppeurope)
+# CI/CD — guide pas à pas (front-cppeurope)
 
 Ce document te fait faire **CI** puis **CD** dans l’ordre, avec des mots simples.
 
@@ -18,13 +18,13 @@ Ce document te fait faire **CI** puis **CD** dans l’ordre, avec des mots simpl
 
 ## Étape 1 — Avoir le code sur GitHub
 
-1. Le dossier du projet doit être un dépôt Git (déjà le cas chez toi : `hostinger-cppeurope`).
-2. Le dépôt distant doit être sur GitHub (URL du type `https://github.com/TON_COMPTE/hostinger-cppeurope`).
+1. Le dossier du projet doit être un dépôt Git (déjà le cas chez toi : `front-cppeurope`).
+2. Le dépôt distant doit être sur GitHub (URL du type `https://github.com/TON_COMPTE/front-cppeurope`).
 
 Si ce n’est pas encore poussé :
 
 ```bash
-cd /chemin/vers/hostinger-cppeurope
+cd /chemin/vers/front-cppeurope
 git remote -v
 git push -u origin main
 ```
@@ -63,7 +63,7 @@ Si tu viens de les ajouter : `git add`, `git commit`, `git push`.
 Sur le VPS (connexion SSH comme d’habitude), il faut :
 
 1. Un **clone Git** du même dépôt, par exemple :
-   - `/var/www/hostinger-cppeurope`  
+   - `/var/www/front-cppeurope`  
    *(le chemin exact sera recopié dans le secret `DEPLOY_PATH`.)*
 2. À l’intérieur : `docker-compose.yml` (ou `docker compose`) qui lance le site comme aujourd’hui.
 3. La branche que tu déploies (souvent `main`) doit exister sur `origin` après ton `git push`.
@@ -71,7 +71,7 @@ Sur le VPS (connexion SSH comme d’habitude), il faut :
 Test manuel utile (sur le VPS) :
 
 ```bash
-cd /var/www/hostinger-cppeurope   # ou TON chemin
+cd /var/www/front-cppeurope   # ou TON chemin
 git status
 bash ./deploy-with-tests.sh
 cp -n docker-compose.production.env.example docker-compose.production.env   # une fois ; puis éditer si besoin
@@ -88,17 +88,17 @@ Sur **ton ordinateur** (ou sur le VPS, selon ta habitude) :
 
 1. Si tu n’as pas encore de paire de clés dédiée au déploiement, tu peux en créer une :
    ```bash
-   ssh-keygen -t ed25519 -f ~/.ssh/github_deploy_hostinger -C "github-actions-deploy"
+   ssh-keygen -t ed25519 -f ~/.ssh/github_deploy_ikoula -C "github-actions-deploy"
    ```
-2. **Clé publique** (`github_deploy_hostinger.pub`) : à ajouter sur le VPS dans  
+2. **Clé publique** (`github_deploy_ikoula.pub`) : à ajouter sur le VPS dans  
    `~/.ssh/authorized_keys` de l’utilisateur utilisé pour le déploiement (souvent `root` ou `deploy`).
-3. **Clé privée** (`github_deploy_hostinger`, sans `.pub`) : c’est elle que tu vas coller **entièrement** dans le secret GitHub `DEPLOY_SSH_KEY` (voir étape 6).  
+3. **Clé privée** (`github_deploy_ikoula`, sans `.pub`) : c’est elle que tu vas coller **entièrement** dans le secret GitHub `DEPLOY_SSH_KEY` (voir étape 6).  
    **Ne la commite jamais dans le dépôt.**
 
 Vérifie depuis ton PC :
 
 ```bash
-ssh -i ~/.ssh/github_deploy_hostinger UTILISATEUR@IP_OU_DOMAINE_DU_VPS
+ssh -i ~/.ssh/github_deploy_ikoula UTILISATEUR@IP_OU_DOMAINE_DU_VPS
 ```
 
 Tu dois pouvoir te connecter sans mot de passe.
@@ -107,14 +107,14 @@ Tu dois pouvoir te connecter sans mot de passe.
 
 ## Étape 6 — Configurer les secrets sur GitHub
 
-1. Sur GitHub : dépôt **hostinger-cppeurope** → **Settings** → **Secrets and variables** → **Actions**.
+1. Sur GitHub : dépôt **front-cppeurope** → **Settings** → **Secrets and variables** → **Actions**.
 2. Ajoute **Repository secrets** (ou secrets d’environnement **production** — voir note ci-dessous) :
 
 | Nom du secret | Quoi mettre |
 |----------------|-------------|
 | `DEPLOY_HOST` | IP ou domaine du VPS (ex. `123.45.67.89` ou `monserveur.net`) |
 | `DEPLOY_USER` | Utilisateur SSH (ex. `root` ou `ubuntu`) |
-| `DEPLOY_PATH` | Chemin absolu du clone Git sur le VPS (ex. `/var/www/hostinger-cppeurope`) |
+| `DEPLOY_PATH` | Chemin absolu du clone Git sur le VPS (ex. `/var/www/front-cppeurope`) |
 | `DEPLOY_SSH_KEY` | Contenu **complet** du fichier de **clé privée** (commence souvent par `-----BEGIN OPENSSH PRIVATE KEY-----`) |
 
 **Note environnement `production`** : le workflow **Deploy** utilise `environment: production`.  

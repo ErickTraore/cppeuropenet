@@ -29,8 +29,8 @@ function normalizeBasePath(input) {
   return withLeadingSlash.replace(/\/+$/, '');
 }
 
-const LOCAL_FRONT_PORT = parseInt(process.env.HOSTINGER_FRONTEND_PORT || '8082', 10);
-const configuredFrontHost = process.env.HOSTINGER_FRONTEND_HOST || process.env.E2E_FRONTEND_HOST || '';
+const LOCAL_FRONT_PORT = parseInt(process.env.IKOULA_FRONTEND_PORT || '8082', 10);
+const configuredFrontHost = process.env.IKOULA_FRONTEND_HOST || process.env.E2E_FRONTEND_HOST || '';
 const primaryIPv4 = firstNonInternalIPv4();
 const normalizedConfiguredFrontHost = String(configuredFrontHost || '').trim();
 const useLanFallbackForLocalhost =
@@ -42,14 +42,14 @@ const CYPRESS_FRONTEND_HOST = useLanFallbackForLocalhost
   ? primaryIPv4 || 'localhost'
   : normalizedConfiguredFrontHost;
 const FRONT_BASE_PATH = normalizeBasePath(
-  process.env.HOSTINGER_FRONTEND_BASE_PATH || process.env.E2E_FRONTEND_BASE_PATH || ''
+  process.env.IKOULA_FRONTEND_BASE_PATH || process.env.E2E_FRONTEND_BASE_PATH || ''
 );
 const LOCAL_USER_PORT = parseInt(
-  process.env.HOSTINGER_USER_BACKEND_PORT || E2E_ENV.E2E_PORT_USER_BACKEND || '17001',
+  process.env.IKOULA_USER_BACKEND_PORT || E2E_ENV.E2E_PORT_USER_BACKEND || '17001',
   10
 );
 const configuredUserHost =
-  process.env.HOSTINGER_USER_BACKEND_HOST || process.env.E2E_BACKEND_HOST || process.env.HOSTINGER_FRONTEND_HOST || '';
+  process.env.IKOULA_USER_BACKEND_HOST || process.env.E2E_BACKEND_HOST || process.env.IKOULA_FRONTEND_HOST || '';
 const CYPRESS_USER_BACKEND_HOST =
   process.platform === 'darwin' && (configuredUserHost === '' || configuredUserHost === 'localhost' || configuredUserHost === '127.0.0.1')
     ? 'localhost'
@@ -57,7 +57,7 @@ const CYPRESS_USER_BACKEND_HOST =
 const HOME_CONFIG_BASELINE_FILE = path.join(__dirname, 'cypress', '.e2e-home-config-baseline.json');
 
 function frontHostCandidates() {
-  const explicit = process.env.CYPRESS_FRONTEND_HOST || process.env.HOSTINGER_FRONTEND_HOST || process.env.E2E_FRONTEND_HOST || null;
+  const explicit = process.env.CYPRESS_FRONTEND_HOST || process.env.IKOULA_FRONTEND_HOST || process.env.E2E_FRONTEND_HOST || null;
   const candidates = [explicit, 'localhost', '127.0.0.1', firstNonInternalIPv4()]
     .filter(Boolean)
     .map((h) => String(h));
@@ -223,7 +223,7 @@ module.exports = defineConfig({
           return signHs256Jwt({ userId, isAdmin, iat: now, exp: now + ttlSec }, signSecret);
         },
         /**
-         * S’assure que le frontend hostinger répond sur le port HOSTINGER_FRONTEND_PORT (défaut 8082) avec /api/ping (Express server.prod.js).
+         * S’assure que le frontend ikoula répond sur le port IKOULA_FRONTEND_PORT (défaut 2082) avec /api/ping (Express server.prod.js).
          * Lance un build si nécessaire, puis démarre le serveur en arrière-plan si le port est vide.
          */
         async ensureFrontendProd8082() {

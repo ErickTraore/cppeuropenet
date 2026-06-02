@@ -3,6 +3,7 @@ import { triggerFormatReset } from '../../../utils/formatController';
 import { getPresseLocaleApiRoot, getPresseLocaleMediaApiRoot } from '../../../utils/presseLocaleApi';
 
 const SITE_KEY = process.env.REACT_APP_PRESSE_LOCALE_SITE_KEY || 'cppEurope';
+const LOCALE_VIDEO_FORMAT = 'article-video';
 
 const FormPresseLocaleVideo = () => {
   const [newMessage, setNewMessage] = useState({
@@ -32,6 +33,7 @@ const FormPresseLocaleVideo = () => {
     const formData = new FormData();
     formData.append('video', file);
     formData.append('messageId', String(messageId));
+    formData.append('format', LOCALE_VIDEO_FORMAT);
 
     const response = await fetch(`${getPresseLocaleMediaApiRoot()}/uploadVideo/`, {
       method: 'POST',
@@ -78,6 +80,7 @@ const FormPresseLocaleVideo = () => {
           content: newMessage.content,
           categ: 'presse-locale',
           siteKey: SITE_KEY,
+          format: LOCALE_VIDEO_FORMAT,
         }),
       });
 

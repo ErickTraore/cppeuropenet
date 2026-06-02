@@ -14,18 +14,25 @@ describe('Home config admin — fixtures cat. 1 à 3, enregistrer, trois images 
   const adminPassword = 'admin2026!';
   const fixtureImage = 'cypress/fixtures/e2e-home-cat1.png';
   const isStagingProfile = String(Cypress.env('E2E_PROFILE') || '').toLowerCase() === 'staging';
-  const homeConfigOrigin = String(Cypress.env('HOME_CONFIG_ORIGIN') || '').trim();
+  let homeConfigOrigin = String(Cypress.env('HOME_CONFIG_ORIGIN') || '').trim();
 
   /** Copie mémoire pour logs ; la source de vérité teardown est le fichier baseline. */
   let homeBaselineSnapshot = null;
   let homeConfigApiAvailable = true;
 
   before(() => {
+    const base = String(Cypress.config('baseUrl') || '').trim();
+    if (!homeConfigOrigin && base) {
+      try {
+        homeConfigOrigin = new URL(base).origin;
+      } catch (_) {
+        // Keep explicit failure below if baseUrl is malformed.
+      }
+    }
     if (!homeConfigOrigin) {
-      throw new Error('[042] Paramètre Cypress HOME_CONFIG_ORIGIN manquant. Configurez CYPRESS_HOME_CONFIG_ORIGIN dans votre environnement E2E.');
+      throw new Error('[042] Paramètre Cypress HOME_CONFIG_ORIGIN manquant et baseUrl inutilisable. Configurez CYPRESS_HOME_CONFIG_ORIGIN dans votre environnement E2E.');
     }
     cy.task('ensureFrontendProd8082');
-    const base = Cypress.config('baseUrl');
     cy.request({ url: `${base}/api/home-config`, failOnStatusCode: false }).then((res) => {
       homeConfigApiAvailable = res.status === 200;
       if (!homeConfigApiAvailable) {

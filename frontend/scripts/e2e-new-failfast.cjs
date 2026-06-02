@@ -60,8 +60,10 @@ function main() {
   const maxSpecs = intEnv('E2E_FAILFAST_MAX_SPECS', 0);
   const filterRaw = String(process.env.E2E_FAILFAST_FILTER || '').trim();
   const filter = filterRaw ? new RegExp(filterRaw, 'i') : null;
+  const excludedByDefault = /manualproof/i;
 
   let specs = collectSpecsRec(NEW_SPECS_DIR).sort((a, b) => a.localeCompare(b));
+  specs = specs.filter((s) => !excludedByDefault.test(s));
   if (filter) {
     specs = specs.filter((s) => filter.test(s));
   }

@@ -1,4 +1,4 @@
-// File: hostinger-cppeurope/frontend/cypress/e2e/02_cleanupE2EPresseGenerale.cy.js
+// File: front-cppeurope/frontend/cypress/e2e/02_cleanupE2EPresseGenerale.cy.js
 
 /**
  * Test 00 - Nettoyage E2E Presse Générale.
@@ -32,7 +32,7 @@ describe('02B - Cleanup E2E Presse Générale', () => {
     });
   });
 
-  it('récupère les messages presse générale puis supprime uniquement les 4 enregistrements E2E', () => {
+  it('récupère les messages politique puis supprime uniquement les 4 enregistrements E2E', () => {
     const runVerification = () => {
       cy.get('@accessToken').then((token) => {
         cy.request({

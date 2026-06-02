@@ -46,9 +46,7 @@ function App() {
 
   const token = localStorage.getItem("accessToken");
 
-  // PageContent affiche admin-presse-generale dès le hash, sans regarder Redux. Si le store perd
-  // isAuthenticated alors qu'un accessToken est encore présent (désync), le menu / horloge disparaissent
-  // tout en laissant cette page — comme sur ta capture. On réaligne le store sur le token.
+  // Si le store perd isAuthenticated alors qu'un accessToken est présent, on réaligne le store.
   useEffect(() => {
     const t = localStorage.getItem('accessToken');
     if (t && !isAuthenticated) {
@@ -135,34 +133,8 @@ function App() {
     setOpenSubmenu((prev) => (prev === key ? null : key));
   };
 
-  // Menu dynamique (structure alignée ppacilyoncentre) : Presse Générale / Presse Locale avec sous-menus admin
+  // Menu de la première application (presse générale + presse locale)
   const menuItems = useMemo(() => {
-    const presseGenerale = isAdmin
-      ? {
-          key: 'presse-generale',
-          label: 'Presse Générale',
-          defaultKey: 'presse-generale',
-          children: [
-            { key: 'presse-generale', label: 'Gérer' },
-            { key: 'newpresse', label: 'Consulter' },
-            { key: 'admin-presse-generale', label: 'Créer' },
-          ],
-        }
-      : { key: 'newpresse', label: 'Presse Générale' };
-
-    const presseLocale = isAdmin
-      ? {
-          key: 'presse-locale',
-          label: 'Presse Locale',
-          defaultKey: 'presse-locale',
-          children: [
-            { key: 'presse-locale', label: 'Gérer' },
-            { key: 'newpresse-locale', label: 'Consulter' },
-            { key: 'admin-presse-locale', label: 'Créer' },
-          ],
-        }
-      : { key: 'newpresse-locale', label: 'Presse Locale' };
-
     const homeItem = isAdmin
       ? {
           key: 'home',
@@ -175,10 +147,36 @@ function App() {
         }
       : { key: 'home', label: 'Home' };
 
+    const presseGeneraleItem = isAdmin
+      ? {
+          key: 'presse-generale',
+          label: 'Presse Générale',
+          defaultKey: 'presse-generale',
+          children: [
+            { key: 'presse-generale', label: 'Gérer' },
+            { key: 'newpresse', label: 'Consulter' },
+            { key: 'admin-presse-generale', label: 'Créer' },
+          ],
+        }
+      : { key: 'newpresse', label: 'Presse Générale' };
+
+    const presseLocaleItem = isAdmin
+      ? {
+          key: 'presse-locale',
+          label: 'Presse Locale',
+          defaultKey: 'presse-locale',
+          children: [
+            { key: 'presse-locale', label: 'Gérer' },
+            { key: 'newpresse-locale', label: 'Consulter' },
+            { key: 'admin-presse-locale', label: 'Créer' },
+          ],
+        }
+      : { key: 'newpresse-locale', label: 'Presse Locale' };
+
     return [
       homeItem,
-      presseGenerale,
-      presseLocale,
+      presseGeneraleItem,
+      presseLocaleItem,
       { key: 'contact', label: 'Contact' },
       { key: 'profilepage', label: 'ProfilePage' },
     ];

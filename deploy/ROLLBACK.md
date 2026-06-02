@@ -8,7 +8,7 @@ Procedure standard pour revenir vite a un etat stable.
 - Fenetre de rollback validee.
 - Operateur connecte au VPS principal.
 
-## 2) Rollback application (Hostinger)
+## 2) Rollback application (Ikoula)
 
 ```bash
 cd /var/www/cppeurope

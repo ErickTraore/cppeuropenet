@@ -10,7 +10,7 @@ let envFile = '.env.production';
 if (process.env.NODE_ENV === 'development') {
   envFile = '.env.development';
 }
-// Vérifier si .env.staging existe et l'utiliser en priorité (pour staging sur Hostinger)
+// Vérifier si .env.staging existe et l'utiliser en priorité (pour staging sur Ikoula)
 const stagingEnvPath = path.join(__dirname, '..', '.env.staging');
 if (fs.existsSync(stagingEnvPath)) {
   envFile = '.env.staging';
