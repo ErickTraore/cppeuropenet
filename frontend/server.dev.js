@@ -18,8 +18,12 @@ const PRESSE_MEDIA_LOC_PORT = parseInt(process.env.PRESSE_MEDIA_LOC_PORT || '700
 const PRESSE_LOCALE_MSG_HOST = process.env.PRESSE_LOCALE_MSG_HOST || '127.0.0.1';
 const PRESSE_LOCALE_MSG_PORT = parseInt(process.env.PRESSE_LOCALE_MSG_PORT || '7005', 10);
 
-const PRESSE_GENERALE_MSG_HOST = process.env.PRESSE_GENERALE_MSG_HOST || '127.0.0.1';
-const PRESSE_GENERALE_MSG_PORT = parseInt(process.env.PRESSE_GENERALE_MSG_PORT || '17012', 10);
+const PRESSE_GENERALE_MSG_HOST =
+  process.env.PRESSE_GENERALE_MSG_HOST || process.env.PRESSE_GENERALE_HOST || '127.0.0.1';
+const PRESSE_GENERALE_MSG_PORT = parseInt(
+  process.env.PRESSE_GENERALE_MSG_PORT || process.env.PRESSE_GENERALE_PORT || '7016',
+  10
+);
 const CONTABO_PATH_PREFIX_RAW = String(process.env.CONTABO_PATH_PREFIX || '').trim();
 const CONTABO_PATH_PREFIX = CONTABO_PATH_PREFIX_RAW
   ? `/${CONTABO_PATH_PREFIX_RAW.replace(/^\/+|\/+$/g, '')}`
@@ -27,6 +31,7 @@ const CONTABO_PATH_PREFIX = CONTABO_PATH_PREFIX_RAW
 
 const HOME_CONFIG_HOST = process.env.HOME_CONFIG_HOST || '127.0.0.1';
 const HOME_CONFIG_PORT = parseInt(process.env.HOME_CONFIG_PORT || '7020', 10);
+const ALLOW_LOCAL_HOME_CONFIG_WRITE = String(process.env.ALLOW_LOCAL_HOME_CONFIG_WRITE || '').toLowerCase() === 'true';
 
 const USER_BACKEND_HOST = process.env.USER_BACKEND_HOST || '127.0.0.1';
 const USER_BACKEND_PORT = parseInt(process.env.USER_BACKEND_PORT || '7001', 10);
@@ -218,6 +223,16 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   const o = req.originalUrl || '';
   if (!o.startsWith('/api/home-config')) return next();
+  const method = String(req.method || 'GET').toUpperCase();
+  const isWrite = method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS';
+  const hostHeader = String(req.headers.host || '').split(':')[0].toLowerCase();
+  const isLocalHost = hostHeader === 'localhost' || hostHeader === '127.0.0.1' || hostHeader === '::1';
+  if (isWrite && isLocalHost && !ALLOW_LOCAL_HOME_CONFIG_WRITE) {
+    return res.status(403).json({
+      error:
+        'Home-config write blocked on localhost. Use commit + pipeline for staging updates, or set ALLOW_LOCAL_HOME_CONFIG_WRITE=true explicitly.',
+    });
+  }
   proxyRawPath(req, res, HOME_CONFIG_HOST, HOME_CONFIG_PORT, o, { omitOrigin: true });
 });
 

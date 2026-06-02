@@ -10,6 +10,21 @@ module.exports = function setupProxy(app) {
   const targetProfile = process.env.MEDIA_STATIC_PROXY || 'http://127.0.0.1:7017';
   const targetPresseLocaleApi = process.env.PRESSE_LOCALE_MSG_PROXY || 'http://127.0.0.1:7005';
   const targetHomeConfig = process.env.HOME_CONFIG_PROXY || 'http://127.0.0.1:7020';
+  const allowLocalHomeConfigWrite = String(process.env.ALLOW_LOCAL_HOME_CONFIG_WRITE || '').toLowerCase() === 'true';
+
+  app.use('/api/home-config', (req, res, next) => {
+    const method = String(req.method || 'GET').toUpperCase();
+    const isWrite = method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS';
+    const hostHeader = String(req.headers.host || '').split(':')[0].toLowerCase();
+    const isLocalHost = hostHeader === 'localhost' || hostHeader === '127.0.0.1' || hostHeader === '::1';
+    if (isWrite && isLocalHost && !allowLocalHomeConfigWrite) {
+      return res.status(403).json({
+        error:
+          'Home-config write blocked on localhost. Use commit + pipeline for staging updates, or set ALLOW_LOCAL_HOME_CONFIG_WRITE=true explicitly.',
+      });
+    }
+    return next();
+  });
 
   app.use(
     '/api/user-media-profile',
