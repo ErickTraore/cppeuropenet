@@ -7,7 +7,7 @@ Ce document verrouille les variables critiques par environnement pour limiter le
 | Environnement | Compose principal | Node env attendu | URL front de reference |
 |---|---|---|---|
 | Local dev | `docker-compose.dev.yml` | `development` | `http://localhost:8082` |
-| Staging | `docker-compose.staging.yml` | `production` | `http://93.127.167.134:9085` (ou domaine staging) |
+| Staging | `docker-compose.staging.yml` | `production` | `http://<staging-url>:9085` (ou domaine staging) |
 | Production | `docker-compose.yml` | `production` | `https://cppeurope.net` |
 
 Interpolation `${…}` dans les YAML Compose (ports, CORS explicites, variables frontend) :
@@ -20,7 +20,7 @@ Interpolation `${…}` dans les YAML Compose (ports, CORS explicites, variables 
 
 Raccourcis : `./scripts/dev-compose.sh`, `./scripts/staging-compose.sh`, `./scripts/production-compose.sh`.
 
-## 2) User-backend (Hostinger)
+## 2) User-backend (Ikoula)
 
 Variables critiques:
 
@@ -38,7 +38,7 @@ Risque connu:
 
 - Si l'origine Cypress n'est pas dans `ALLOWED_ORIGINS`, login UI retourne `403` (CORS), meme si l'API login fonctionne via `curl`.
 
-## 3) Frontend proxy (Hostinger)
+## 3) Frontend proxy (Ikoula)
 
 Variables critiques:
 
@@ -129,4 +129,17 @@ A chaque changement d'URL, proxy, CORS, JWT ou routage Contabo:
    - `035_presseGeneraleConsultAfterCreateOption2`
    - `036_presseGeneraleConsultAfterCreateOption3`
    - smoke auth prod (`006` + `009`).
+
+## 8) Regle d'ecriture (obligatoire)
+
+Politique source de verite:
+
+- Local: peut ecrire uniquement dans des bases `*_dev_*`.
+- Staging: ne change que par commit + pipeline CI/CD.
+- Production: ne change jamais depuis local; uniquement via promotion validee.
+
+Interdictions:
+
+- Aucune variable `DB_NAME` locale ne doit contenir `*_prod_*`.
+- Aucune ecriture Home depuis localhost vers une cible distante (garde-fou proxy en place).
 
