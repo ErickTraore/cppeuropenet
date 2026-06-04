@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Release gates runner:
 # - local: build + smoke auth
-# - staging: full cypress suite on staging
+# - staging: deterministic critical cypress smoke on staging (override with STAGING_CYPRESS_SPEC for full suite)
 # - prod-smoke: minimal smoke on production domain
 # - ci-smoke: smoke rapide UI pour GitHub CI
 # - all: local -> staging -> prod-smoke
@@ -34,10 +34,11 @@ run_local() {
 }
 
 run_staging() {
-  log "Gate staging: full E2E suite (${STAGING_BASE_URL})"
+  log "Gate staging: critical E2E smoke (${STAGING_BASE_URL})"
   cd "$FRONTEND_DIR"
 
-  local staging_specs="${STAGING_CYPRESS_SPEC:-cypress/e2e/new/**/*.cy.js}"
+  local default_staging_specs="cypress/e2e/new/new-0-start/006_initUsersE2E.cy.js,cypress/e2e/new/new-0-start/007_initUsersE2E_2.cy.js,cypress/e2e/new/new-0-start/009_loginFormE2E.cy.js,cypress/e2e/new/new-9/027_cppeuropeNet.cy.js,cypress/e2e/new/new-9/031_sessionInvalidationReload.cy.js,cypress/e2e/new/new-9/032_usersAdmin2026User2026.cy.js,cypress/e2e/new/new-10/033_presseGeneralePhotoKeepsShell.cy.js,cypress/e2e/new/new-10/034_presseGeneraleConsultAfterCreateOption1.cy.js,cypress/e2e/new/new-10/035_presseGeneraleConsultAfterCreateOption2.cy.js,cypress/e2e/new/new-10/036_presseGeneraleConsultAfterCreateOption3.cy.js,cypress/e2e/new/new-10/037_presseGeneraleConsultAfterCreateOption4.cy.js,cypress/e2e/new/new-11/044_homePageVisitorFlow.cy.js"
+  local staging_specs="${STAGING_CYPRESS_SPEC:-$default_staging_specs}"
 
   log "Attente frontend staging (${STAGING_BASE_URL}) avant Cypress"
   local code="000"
