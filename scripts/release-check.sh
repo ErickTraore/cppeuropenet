@@ -128,6 +128,18 @@ run_ci_e2e_full() {
     --spec "cypress/e2e/new/**/*.cy.js"
 }
 
+run_ci_smoke() {
+  log "Gate ci-smoke: CRA server + lightweight public shell spec"
+  cd "$FRONTEND_DIR"
+  npm ci
+  npm start &
+  npx wait-on http://localhost:3000
+  env -u ELECTRON_RUN_AS_NODE npx cypress run \
+    --config-file cypress.config.cjs \
+    --config baseUrl=http://localhost:3000 \
+    --spec "cypress/e2e/new/027_cppeuropeNet.cy.js"
+}
+
 usage() {
   cat <<'EOF'
 Usage:
@@ -150,7 +162,10 @@ case "$MODE" in
     run_parity_gate
     run_prod_smoke
     ;;
-  ci-smoke|ci-e2e-full)
+  ci-smoke)
+    run_ci_smoke
+    ;;
+  ci-e2e-full)
     run_ci_e2e_full
     ;;
   all)
