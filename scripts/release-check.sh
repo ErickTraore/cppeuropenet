@@ -137,7 +137,7 @@ run_ci_smoke() {
   env -u ELECTRON_RUN_AS_NODE npx cypress run \
     --config-file cypress.config.cjs \
     --config baseUrl=http://localhost:3000 \
-    --spec "cypress/e2e/new/027_cppeuropeNet.cy.js"
+    --spec "cypress/e2e/new/new-9/027_cppeuropeNet.cy.js"
 }
 
 usage() {
