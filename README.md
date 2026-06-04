@@ -260,6 +260,9 @@ npm run e2e:compose up -d
 # Ou prod avec variables dans docker-compose.production.env :
 ./scripts/production-compose.sh up -d
 
+# En production, seuls les ports 80 et 443 doivent rester publiés sur l'hôte.
+# Les services applicatifs et MariaDB restent internes au réseau Docker.
+
 # Front (build dans le conteneur) : http://localhost:8082
 ```
 

@@ -10,6 +10,12 @@ Ce document verrouille les variables critiques par environnement pour limiter le
 | Staging | `docker-compose.staging.yml` | `production` | `http://<staging-url>:9085` (ou domaine staging) |
 | Production | `docker-compose.yml` | `production` | `https://cppeurope.net` |
 
+Politique ports prod:
+
+- Aucun service applicatif ne publie de port hôte.
+- Seuls `80` et `443` restent exposés par `nginx`.
+- MariaDB, `user-backend`, `frontend` et `adminer` restent internes au réseau Docker.
+
 Interpolation `${…}` dans les YAML Compose (ports, CORS explicites, variables frontend) :
 
 | Environnement | Fichiers `--env-file` (voir `.example` versionnés) |
@@ -137,6 +143,11 @@ Politique source de verite:
 - Local: peut ecrire uniquement dans des bases `*_dev_*`.
 - Staging: ne change que par commit + pipeline CI/CD.
 - Production: ne change jamais depuis local; uniquement via promotion validee.
+
+## 9) Politique ports production
+
+- En production, un `docker compose up` doit echouer si un port autre que `80` ou `443` est publie sur l'hôte.
+- Toute nouvelle publication de port hôte doit être justifiee, documentee, puis preferée via reverse proxy interne avant publication directe.
 
 Interdictions:
 

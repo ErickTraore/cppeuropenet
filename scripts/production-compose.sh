@@ -54,5 +54,16 @@ if [[ ${#MISSING_KEYS[@]} -gt 0 ]]; then
   echo "Ajoutez ces clés dans $ENV_FILE avant de relancer." >&2
   exit 1
 fi
+  
+if [[ "$CMD" == "up" || "$CMD" == "start" ]]; then
+  EXPOSED_PORTS=$(docker compose --env-file "$ENV_FILE" -f docker-compose.yml config 2>/dev/null | grep -n "published:" || true)
+  if [[ -n "$EXPOSED_PORTS" ]]; then
+    if printf '%s\n' "$EXPOSED_PORTS" | grep -vE 'published: "(80|443)"' >/dev/null; then
+      echo "[ERREUR] La politique prod interdit les ports publiés hors 80/443." >&2
+      printf '%s\n' "$EXPOSED_PORTS" >&2
+      exit 1
+    fi
+  fi
+fi
 
 exec docker compose --env-file "$ENV_FILE" -f docker-compose.yml "$@"

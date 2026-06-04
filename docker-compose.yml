@@ -16,8 +16,6 @@ services:
     command: bash -c "npm install && sh ./wait-for-db.sh node server.prod.js"
     depends_on:
       - mariadb
-    ports:
-      - "${COMPOSE_USER_BACKEND_HOST_PORT}:7001"
     restart: always
     networks:
       - app-network
@@ -34,8 +32,6 @@ services:
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
     volumes:
       - front-cppeurope-db-data:/var/lib/mysql
-    ports:
-      - "${COMPOSE_MARIADB_HOST_PORT}:3306"
     networks:
       - app-network
 
@@ -45,7 +41,6 @@ services:
       - user-backend
     ports:
       - "80:80"
-      - "${COMPOSE_NGINX_HOST_PORT}:80"
       - "443:443"
     volumes:
       - ./nginx:/etc/nginx/
@@ -81,8 +76,6 @@ services:
     command: bash -c "npm install && npm run build && node server.prod.js"
     depends_on:
       - user-backend
-    ports:
-      - "${COMPOSE_FRONTEND_HOST_PORT}:3000"
     restart: always
     networks:
       - app-network
@@ -90,8 +83,6 @@ services:
   adminer:
     image: adminer
     restart: always
-    ports:
-      - "${COMPOSE_ADMINER_HOST_PORT}:8080"
     depends_on:
       - mariadb
     environment:

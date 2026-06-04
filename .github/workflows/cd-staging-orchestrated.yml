@@ -12,9 +12,6 @@ on:
         required: true
         default: main
         type: string
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
 
 concurrency:
   group: deploy-staging-orchestrated
@@ -26,20 +23,11 @@ permissions:
 jobs:
   deploy-multi-vps:
     name: Deploy Ikoula + Contabo (staging)
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      (
-        github.event_name == 'workflow_run' &&
-        github.event.workflow_run.conclusion == 'success' &&
-        github.event.workflow_run.event == 'push' &&
-        github.event.workflow_run.head_branch == 'main'
-      )
     runs-on: ubuntu-latest
     environment: staging
     timeout-minutes: 60
     steps:
       - name: Vérifier la confirmation
-        if: github.event_name == 'workflow_dispatch'
         run: |
           if [ "${{ inputs.confirm }}" != "DEPLOY-STAGING-ORCH" ]; then
             echo "::error::Confirmation invalide. Tu dois saisir exactement DEPLOY-STAGING-ORCH."
@@ -96,7 +84,7 @@ jobs:
           STAGING_CONTABO_HOST: ${{ secrets.STAGING_CONTABO_HOST }}
           STAGING_CONTABO_USER: ${{ secrets.STAGING_CONTABO_USER }}
           STAGING_CONTABO_PATH: ${{ secrets.STAGING_CONTABO_PATH }}
-          GIT_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.git_ref || github.event.workflow_run.head_branch }}
+          GIT_REF: ${{ inputs.git_ref }}
         run: |
           if [ -z "$STAGING_CONTABO_USER" ] || [ -z "$STAGING_CONTABO_PATH" ]; then
             echo "::error::Secrets STAGING_CONTABO_USER / STAGING_CONTABO_PATH requis dans l'environment staging."
@@ -134,7 +122,7 @@ jobs:
           STAGING_DEPLOY_PATH: ${{ secrets.STAGING_DEPLOY_PATH }}
           STAGING_BACKEND_ENV: ${{ secrets.STAGING_BACKEND_ENV }}
           STAGING_COMPOSE_ENV: ${{ secrets.STAGING_COMPOSE_ENV }}
-          GIT_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.git_ref || github.event.workflow_run.head_branch }}
+          GIT_REF: ${{ inputs.git_ref }}
         run: |
           if [ -z "$STAGING_BACKEND_ENV" ] || [ -z "$STAGING_COMPOSE_ENV" ]; then
             echo "::error::Secrets STAGING_BACKEND_ENV / STAGING_COMPOSE_ENV requis dans l'environment staging."
@@ -181,10 +169,9 @@ jobs:
                [ \"\$i\" -eq 60 ] && echo '::warning::MariaDB pas prêt après 120s, on tente quand même'
                sleep 2
              done
-             echo '-- Migrations Sequelize (in container)'
-             ./scripts/staging-compose.sh exec -T user-backend sh -lc 'npm install && npx sequelize-cli db:migrate --env production'
-             echo '-- Provision smoke user'
-             ./scripts/staging-compose.sh exec -T user-backend node scripts/ensure-smoke-user.js"
+             cd user-backend
+             npm install
+             DB_HOST=127.0.0.1 DB_PORT=3315 npx sequelize-cli db:migrate --env production"
 
   staging-smoke:
     name: Post-deploy smoke (staging)
