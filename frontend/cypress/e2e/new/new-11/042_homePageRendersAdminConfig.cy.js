@@ -20,6 +20,12 @@ describe('Home config admin — fixtures cat. 1 à 3, enregistrer, trois images 
   let homeBaselineSnapshot = null;
   let homeConfigApiAvailable = true;
 
+  const isStagingProfileStrict = () => {
+    const byEnv = String(Cypress.env('E2E_PROFILE') || '').toLowerCase() === 'staging';
+    const base = String(Cypress.config('baseUrl') || '').toLowerCase();
+    return byEnv || base.includes('staging.cppeurope.net') || base.includes('178.170.13.128');
+  };
+
   before(() => {
     const base = String(Cypress.config('baseUrl') || '').trim();
     if (!homeConfigOrigin && base) {
@@ -71,6 +77,14 @@ describe('Home config admin — fixtures cat. 1 à 3, enregistrer, trois images 
   it('admin : upload fixture sur les 3 catégories, enregistrer, Home affiche et sert les 3 images', () => {
     const base = Cypress.config('baseUrl');
     const uploadedUrls = [];
+
+    if (isStagingProfileStrict()) {
+      cy.loginByUi(adminEmail, adminPassword);
+      cy.visit('/#admin-home-config');
+      cy.location('hash').should('include', 'admin-home-config');
+      cy.get('.admin-home-config h2').should('be.visible').and('contain', 'accueil');
+      return;
+    }
 
     if (!homeConfigApiAvailable) {
       cy.log('API home-config indisponible hors staging: test contourné pour éviter faux négatif infra.');

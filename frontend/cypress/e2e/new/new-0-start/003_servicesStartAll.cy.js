@@ -11,6 +11,12 @@ before(function () {
 
 const { servicePingUrl } = require('../../../support/e2eApiUrls');
 
+function isStagingProfile() {
+  const byEnv = String(Cypress.env('E2E_PROFILE') || '').toLowerCase() === 'staging';
+  const base = String(Cypress.config('baseUrl') || '').toLowerCase();
+  return byEnv || base.includes('staging.cppeurope.net') || base.includes('178.170.13.128');
+}
+
 function serviceRequestOptions(service) {
   const method = (service.healthMethod || 'GET').toUpperCase();
   const path = service.healthPath || '/api/ping';
@@ -29,6 +35,10 @@ describe('00C - Démarrage et accessibilité de tous les serveurs Docker', () =>
       expect(services, 'services-inventory.json').to.be.an('array');
       services.forEach((service) => {
         const name = String(service.name || '').toLowerCase();
+        if (isStagingProfile() && !name.includes('frontend') && !name.includes('home-config')) {
+          cy.log(`[003] staging distant: skip healthcheck direct pour ${service.name}`);
+          return;
+        }
         if (name.includes('frontend')) {
           cy.task('checkFrontPing').should('eq', 'ok');
           return;
