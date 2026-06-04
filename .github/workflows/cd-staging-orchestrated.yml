@@ -181,9 +181,8 @@ jobs:
                [ \"\$i\" -eq 60 ] && echo '::warning::MariaDB pas prêt après 120s, on tente quand même'
                sleep 2
              done
-             cd user-backend
-             npm install
-             DB_HOST=127.0.0.1 DB_PORT=3315 npx sequelize-cli db:migrate --env production"
+             echo '-- Migrations Sequelize (in container)'
+             ./scripts/staging-compose.sh exec -T user-backend sh -lc 'npm install && npx sequelize-cli db:migrate --env production'"
 
   staging-smoke:
     name: Post-deploy smoke (staging)
