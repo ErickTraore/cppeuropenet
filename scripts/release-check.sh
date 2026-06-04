@@ -15,6 +15,8 @@ MODE="${1:-all}"
 STAGING_BASE_URL="${STAGING_BASE_URL:-https://staging.cppeurope.net}"
 PROD_BASE_URL="${PROD_BASE_URL:-https://www.cppeurope.net}"
 STAGING_HOME_CONFIG_ORIGIN="${STAGING_HOME_CONFIG_ORIGIN:-$STAGING_BASE_URL}"
+SMOKE_USER_EMAIL="${SMOKE_USER_EMAIL:-healthcheck@cppeurope.net}"
+SMOKE_USER_PASSWORD="${SMOKE_USER_PASSWORD:-healthcheck2026}"
 
 log() {
   printf '\n[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*"
@@ -92,7 +94,7 @@ run_prod_smoke() {
     code="$(curl -sS -o /tmp/prod-smoke-users-login.txt -w "%{http_code}" \
       -H "Content-Type: application/json" \
       -X POST "${PROD_BASE_URL}/api/users/login" \
-      -d '{"email":"healthcheck@cppeurope.net","password":"healthcheck"}' || true)"
+      -d "{\"email\":\"${SMOKE_USER_EMAIL}\",\"password\":\"${SMOKE_USER_PASSWORD}\"}" || true)"
 
     if [[ "$code" != "502" && "$code" != "000" ]]; then
       log "API users prête (HTTP ${code})"

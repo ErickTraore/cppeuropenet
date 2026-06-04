@@ -537,3 +537,29 @@ Association Les Premices (PPA-CI)
 
 **Objectifs typiques :** (1) secrets GitHub (`DEPLOY_HOST`, etc.) pour que **Deploy** passe l’étape SSH ; (2) arborescence Contabo alignée avec le dépôt pour que **`docker compose up`** trouve les **fichiers d’environnement** attendus.
 
+---
+
+## les différents Serveurs:
+   localhost
+   hostinger(compte erick) => Contient le nom de  domaine ivoipresse.com.cppeurope.net/ppacilyoncentre.com
+   hostinger(compte abobi) => Contient le nom de  domaine lespremices.com
+   contabo => contient les backends isolés de toutes les applications.
+           => root@vmi3028091:/opt# ls
+               backups
+               contabo-cppeurope
+               contabo-ivoire
+               contabo-ppacilyon
+               containerd
+               ppacilyon-presseLocale-backend
+               root@vmi3028091:/opt# 
+  cppeurope.net:
+   contabo -> 62.171.186.233 (serveur backend et stockage médias mutualisé pour cppeurope.net et d'autres applications)
+   ikoula -> 178.170.13.128 (serveur staging de cppeurope.net)
+   databasemart -> 77.93.152.116 (IP publique de production / point d’entrée HTTPS de cppeurope.net)
+     
+   ivoirepresse.com:
+      contabo->62.171.186.233(serveur backend 62.171.186.233 de stockage media pour ivoirepresse.com et plusiers autre applications)
+      databasemart->93.127.141.199(serveur staging pour ivoirepresse.com)
+      yorkhost->83.150.218.146 (serveur  production  pour ivoirepresse.com)
+
+   
