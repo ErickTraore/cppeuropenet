@@ -72,16 +72,22 @@ jobs:
       - name: known_hosts
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-        run: ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+        run: |
+          PORT="${DEPLOY_PORT:-22}"
+          ssh-keyscan -p "$PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
 
       - name: Déployer sur le VPS
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
           DEPLOY_PRODUCTION_ENV: ${{ secrets.DEPLOY_PRODUCTION_ENV }}
           GIT_REF: ${{ inputs.git_ref }}
         run: |
+          PORT="${DEPLOY_PORT:-22}"
+
           if [ -z "$DEPLOY_PRODUCTION_ENV" ]; then
             echo "::error::Le secret DEPLOY_PRODUCTION_ENV est vide ou absent (environment production)."
             exit 1
@@ -96,11 +102,11 @@ jobs:
             exit 1
           fi
 
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "${DEPLOY_USER}@${DEPLOY_HOST}" "mkdir -p $(printf '%q' "$DEPLOY_PATH")"
-          scp -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "$TMP_ENV" "${DEPLOY_USER}@${DEPLOY_HOST}:$(printf '%q' "$DEPLOY_PATH")/docker-compose.production.env"
+          ssh -i ~/.ssh/id_ed25519 -p "$PORT" -o StrictHostKeyChecking=yes "${DEPLOY_USER}@${DEPLOY_HOST}" "mkdir -p $(printf '%q' "$DEPLOY_PATH")"
+          scp -i ~/.ssh/id_ed25519 -P "$PORT" -o StrictHostKeyChecking=yes "$TMP_ENV" "${DEPLOY_USER}@${DEPLOY_HOST}:$(printf '%q' "$DEPLOY_PATH")/docker-compose.production.env"
           rm -f "$TMP_ENV"
 
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes "${DEPLOY_USER}@${DEPLOY_HOST}" \
+          ssh -i ~/.ssh/id_ed25519 -p "$PORT" -o StrictHostKeyChecking=yes "${DEPLOY_USER}@${DEPLOY_HOST}" \
             "set -euo pipefail
              cd $(printf '%q' "$DEPLOY_PATH")
              git fetch origin
@@ -114,9 +120,7 @@ jobs:
                sleep 2
              done
              echo '-- Migrations Sequelize'
-             ./scripts/production-compose.sh exec -T user-backend npx sequelize-cli db:migrate
-             echo '-- Provision smoke user'
-             ./scripts/production-compose.sh exec -T user-backend node scripts/ensure-smoke-user.js"
+             ./scripts/production-compose.sh exec -T user-backend npx sequelize-cli db:migrate"
 
   prod-smoke:
     name: Post-deploy smoke (prod)
@@ -136,8 +140,6 @@ jobs:
         working-directory: frontend
         env:
           PROD_BASE_URL: https://www.cppeurope.net
-          SMOKE_USER_EMAIL: healthcheck@cppeurope.net
-          SMOKE_USER_PASSWORD: healthcheck2026
           IKOULA_FRONTEND_HOST: www.cppeurope.net
           IKOULA_FRONTEND_PORT: "443"
           IKOULA_USER_BACKEND_HOST: www.cppeurope.net
