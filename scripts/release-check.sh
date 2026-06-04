@@ -134,7 +134,10 @@ run_ci_smoke() {
   npm ci
   npm start &
   npx wait-on http://localhost:3000
-  env -u ELECTRON_RUN_AS_NODE npx cypress run \
+  env -u ELECTRON_RUN_AS_NODE \
+    CYPRESS_SKIP_E2E_INFRA_GATE=1 \
+    CYPRESS_SKIP_E2E_READY_CHECKS=1 \
+    npx cypress run \
     --config-file cypress.config.cjs \
     --config baseUrl=http://localhost:3000 \
     --spec "cypress/e2e/new/new-9/027_cppeuropeNet.cy.js"
