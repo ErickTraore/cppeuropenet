@@ -11,8 +11,8 @@ Ce document te fait faire **CI** puis **CD** dans l’ordre, avec des mots simpl
   **But** : attraper vite les erreurs de build ou la page d’accueil cassée, sans rien déployer en production.
 
 - **CD (Déploiement)**  
-  **Toi**, depuis le site GitHub, tu cliques pour dire : « mets le code du dépôt sur mon **VPS** et relance Docker ».  
-  **But** : la production ne bouge **que quand tu le décides**, avec une confirmation écrite.
+   Le staging se déploie automatiquement après un CI vert sur `main`. La production reste manuelle : **toi**, depuis GitHub, tu cliques pour dire : « mets le code du dépôt sur mon **VPS** et relance Docker ».  
+   **But** : livraison rapide vers staging, mais la production ne bouge **que quand tu le décides**, avec une confirmation écrite.
 
 ---
 
@@ -54,7 +54,7 @@ Si tu viens de les ajouter : `git add`, `git commit`, `git push`.
    - **vert** = le build + le petit test Cypress smoke sont OK ;
    - **rouge** = ouvre le job qui a échoué et lis les logs (souvent une erreur de build ou de test).
 
-**À retenir** : tant que le CI est rouge, tu peux corriger le code et repousser ; **aucun déploiement** ne part tout seul.
+**À retenir** : tant que le CI est rouge, tu corriges et tu repousses. Quand le CI passe au vert sur `main`, le déploiement staging part automatiquement.
 
 ---
 
@@ -168,6 +168,7 @@ npm run cypress:run:new
 ## Fichiers techniques (référence)
 
 - **CI** : `.github/workflows/ci.yml` — build + smoke `cypress/e2e/new/027_cppeuropeNet.cy.js`.
+- **CD staging auto** : `.github/workflows/cd-staging-orchestrated.yml` — déclenché automatiquement après un CI réussi sur push `main`.
 - **CD** : `.github/workflows/cd.yml` — workflow **Deploy**, manuel uniquement.
 - **Script VPS** : `deploy-with-tests.sh` — Jest + `npm run build` dans `frontend/`, sans Cypress complet.
 
