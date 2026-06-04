@@ -69,11 +69,24 @@ function sameOriginApi(path) {
   const p = path.startsWith('/') ? path : `/${path}`;
   const base = String(Cypress.config('baseUrl') || '').trim();
   try {
-    const origin = new URL(base).origin;
-    return `${origin}${p}`;
+    const url = new URL(base);
+    const host = String(url.hostname || '').toLowerCase();
+    const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+    if (!isLocalHost) {
+      return `${url.origin}${p}`;
+    }
   } catch {
-    return p;
   }
+  const byEnv = String(Cypress.env('E2E_PROFILE') || '').toLowerCase() === 'staging';
+  if (byEnv) {
+    try {
+      const origin = new URL(base).origin;
+      return `${origin}${p}`;
+    } catch {
+      return p;
+    }
+  }
+  return p;
 }
 
 /** Déplie la carte Consulter (titre + contenu) pour un article dont le titre est visible. */

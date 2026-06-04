@@ -10,12 +10,17 @@ function isBrowserRuntime() {
 
 function sameOriginBaseIfStaging() {
   if (!isBrowserRuntime()) return null;
-  const byEnv = String(Cypress.env('E2E_PROFILE') || '').toLowerCase() === 'staging';
   const base = String(Cypress.config('baseUrl') || '');
-  const byUrl = /staging\.cppeurope\.net/i.test(base);
-  if (!byEnv && !byUrl) return null;
   try {
-    return new URL(base).origin;
+    const url = new URL(base);
+    const host = String(url.hostname || '').toLowerCase();
+    const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+    const byEnv = String(Cypress.env('E2E_PROFILE') || '').toLowerCase() === 'staging';
+    const byUrl = /staging\.cppeurope\.net/i.test(base);
+    if (byEnv || byUrl || !isLocalHost) {
+      return url.origin;
+    }
+    return null;
   } catch {
     return null;
   }
