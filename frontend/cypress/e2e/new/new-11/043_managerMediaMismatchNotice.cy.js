@@ -23,7 +23,7 @@ describe('043 - Manager: incohérence média visible', () => {
 
     cy.visitModuleCreer('politique');
     cy.expectAuthenticatedShell();
-    cy.contains('.admin-title', 'GESTION PRESSE', { timeout: 30000 }).should('be.visible');
+    cy.contains('GESTION PRESSE', { timeout: 30000 }).should('be.visible');
 
     cy.contains('.message-id', `ID: ${createdMessageId}`, { timeout: 90000 }).should('be.visible');
     cy.contains('.message-id', `ID: ${createdMessageId}`)

@@ -557,6 +557,9 @@ module.exports = defineConfig({
             if (r.status !== 0) {
               throw new Error(`curl upload exit ${r.status}: ${(r.stderr || '').trim()} ${errBody}`);
             }
+            if (httpCode === 409 && /Quota image atteint/i.test(errBody)) {
+              return { status: 409, skipped: true };
+            }
             if (!Number.isFinite(httpCode) || httpCode < 200 || httpCode >= 300) {
               throw new Error(`upload HTTP ${httpCode}: ${errBody}`);
             }

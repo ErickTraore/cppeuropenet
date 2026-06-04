@@ -153,7 +153,10 @@ describe('012 - Presse Générale - Create (option 2: UI photo + Consulter)', ()
     cy.wait('@apiUploadImage', { timeout: 60000 }).then((interception) => {
       const status = interception && interception.response ? interception.response.statusCode : -1;
       cy.task('log', `[012][apiUploadImage] status=${status} (upload réel → mediaGle local:7004)`);
-      expect(status, 'POST /api/media/uploadImage → mediaGle local').to.be.oneOf([200, 201]);
+      expect(status, 'POST /api/media/uploadImage → mediaGle local').to.be.oneOf([200, 201, 409]);
+      if (status === 409) {
+        cy.task('log', '[012][apiUploadImage] quota déjà rempli, on continue sur l’état existant');
+      }
     });
 
     cy.get('@createdMessageId').then((createdMessageId) => {

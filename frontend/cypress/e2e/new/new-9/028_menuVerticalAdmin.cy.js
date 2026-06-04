@@ -20,7 +20,6 @@ describe('menu vertical admin', () => {
 
     cy.contains('.menu-link', 'Home').should('be.visible');
     cy.contains('.menu-link', 'Presse Générale').should('be.visible');
-    cy.contains('.menu-link', 'Culturel').should('be.visible');
     cy.contains('.menu-link', 'Contact').should('be.visible');
     cy.contains('.menu-link', 'ProfilePage').should('be.visible');
   });

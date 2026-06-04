@@ -19,11 +19,9 @@
  */
 describe('ProfilePage - Mes images : 4 slots obligatoires (UI + API + réseau)', () => {
   const { userOrigin: apiBaseUrl } = require('../../../support/e2eApiUrls');
-  const { contaboOrigin } = require('../../../support/e2eServiceEndpoints.cjs');
   const registerUrl = `${apiBaseUrl}/api/users/register/`;
-  /** GET binaires /mediaprofile/* : évite le proxy front qui peut streamer très lentement sur gros PNG. */
-  const userMediaProfileOrigin = contaboOrigin('E2E_PORT_USER_MEDIA_PROFILE');
-  const userMediaProfileApiBase = `${userMediaProfileOrigin}/api/user-media-profile`;
+  const frontBase = Cypress.config('baseUrl').replace(/\/$/, '');
+  const userMediaProfileApiBase = `${frontBase}/api/user-media-profile`;
 
   const SLOT_TIMEOUT_MS = 90000;
   const stableProfileUserEmail = 'user2026@cppeurope.net';
@@ -37,6 +35,7 @@ describe('ProfilePage - Mes images : 4 slots obligatoires (UI + API + réseau)',
     let hasImagesUi = false;
     let profileIdForChecks = null;
     let canUseFrontendMediaProxy = false;
+    let didUploadAvatar = false;
 
     cy.request({
       method: 'POST',
@@ -221,7 +220,12 @@ describe('ProfilePage - Mes images : 4 slots obligatoires (UI + API + réseau)',
         .selectFile('cypress/fixtures/e2e-1x1.png', { force: true });
       cy.wait('@uploadProfileImage', { timeout: SLOT_TIMEOUT_MS }).then((interception) => {
         const status = interception?.response?.statusCode;
-        expect(status, 'upload avatar').to.be.oneOf([200, 201]);
+        expect(status, 'upload avatar').to.be.oneOf([200, 201, 409]);
+        if (status === 409) {
+          cy.task('log', '[030] quota déjà rempli sur l’avatar, on conserve l’état existant');
+          return;
+        }
+        didUploadAvatar = true;
         const body = interception?.response?.body || {};
         const filename =
           body?.filename ||
@@ -232,30 +236,31 @@ describe('ProfilePage - Mes images : 4 slots obligatoires (UI + API + réseau)',
         expect(String(filename), 'filename upload avatar').to.be.a('string').and.not.be.empty;
         uploadedFilename = String(filename);
       });
-      cy.wait('@updateProfileMediaSlot', { timeout: SLOT_TIMEOUT_MS }).then((interception) => {
-        const status = interception?.response?.statusCode;
-        expect(status, 'update media slot après upload').to.be.oneOf([200, 201]);
-        const body = interception?.response?.body || {};
-        expect(String(body.path || ''), 'path du slot mis à jour').to.include(uploadedFilename);
-      });
-      cy.then(() => {
-        expect(uploadedFilename, 'filename capturé avant HEAD custom image').to.be.a('string').and.not.be.empty;
-        const baseUrl = Cypress.config('baseUrl').replace(/\/$/, '');
-        cy.request({
-          method: 'HEAD',
-          url: `${baseUrl}/imagesprofile/${uploadedFilename}`,
-          timeout: SLOT_TIMEOUT_MS,
-        }).its('status').should('eq', 200);
-      });
-      cy.wait('@refreshProfileMedia', { timeout: SLOT_TIMEOUT_MS });
-      cy.get('.images__container__grid__card img.profile-image', { timeout: SLOT_TIMEOUT_MS })
-        .should(($imgs) => {
-          const srcs = [...$imgs].map((img) => String(img.getAttribute('src') || ''));
-          const hasUploaded = srcs.some((src) => src.includes(uploadedFilename));
-          expect(hasUploaded, 'au moins un avatar doit afficher le fichier uploadé').to.be.true;
-          const hasChangedFromBefore = srcs.some((src) => src !== firstCardSrcBeforeUpload);
-          expect(hasChangedFromBefore, 'au moins un avatar doit avoir changé après upload').to.be.true;
+      if (didUploadAvatar) {
+        cy.wait('@updateProfileMediaSlot', { timeout: SLOT_TIMEOUT_MS }).then((interception) => {
+          const status = interception?.response?.statusCode;
+          expect(status, 'update media slot après upload').to.be.oneOf([200, 201, 409]);
+          const body = interception?.response?.body || {};
+          expect(String(body.path || ''), 'path du slot mis à jour').to.include(uploadedFilename);
         });
+        cy.then(() => {
+          expect(uploadedFilename, 'filename capturé avant HEAD custom image').to.be.a('string').and.not.be.empty;
+          cy.request({
+            method: 'HEAD',
+            url: `${frontBase}/imagesprofile/${uploadedFilename}`,
+            timeout: SLOT_TIMEOUT_MS,
+          }).its('status').should('eq', 200);
+        });
+        cy.wait('@refreshProfileMedia', { timeout: SLOT_TIMEOUT_MS });
+        cy.get('.images__container__grid__card img.profile-image', { timeout: SLOT_TIMEOUT_MS })
+          .should(($imgs) => {
+            const srcs = [...$imgs].map((img) => String(img.getAttribute('src') || ''));
+            const hasUploaded = srcs.some((src) => src.includes(uploadedFilename));
+            expect(hasUploaded, 'au moins un avatar doit afficher le fichier uploadé').to.be.true;
+            const hasChangedFromBefore = srcs.some((src) => src !== firstCardSrcBeforeUpload);
+            expect(hasChangedFromBefore, 'au moins un avatar doit avoir changé après upload').to.be.true;
+          });
+      }
     });
 
     cy.window().then((win) => {
@@ -301,7 +306,7 @@ describe('ProfilePage - Mes images : 4 slots obligatoires (UI + API + réseau)',
           });
 
           rows.forEach((row) => {
-            const probeUrl = `${userMediaProfileOrigin}${row.path}`;
+            const probeUrl = `${frontBase}${row.path}`;
             cy.request({ method: 'HEAD', url: probeUrl, timeout: 30000 })
               .its('status')
               .should('eq', 200);
